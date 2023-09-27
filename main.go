@@ -7,10 +7,19 @@ import (
 	"github.com/hawyar/cql/parser"
 )
 
-func main() {
-	// f, err := os.Open("./example/ChlamydiaScreening_CQM.cql")
+type CqlListener struct {
+	*parser.BasecqlListener
+}
 
-	// input, err := antlr.NewFileStream("./example/ChlamydiaScreening_CQM.cql")
+func (l *CqlListener) EnterEveryRule(ctx antlr.ParserRuleContext) {
+	fmt.Printf("Enter: %s\n", ctx.GetText())
+}
+
+func (l *CqlListener) ExitEveryRule(ctx antlr.ParserRuleContext) {
+	fmt.Printf("Exit: %s\n", ctx.GetText())
+}
+
+func main() {
 	input, err := antlr.NewFileStream("./example/SimpleLib.cql")
 
 	if err != nil {
@@ -19,12 +28,11 @@ func main() {
 
 	lexer := parser.NewcqlLexer(input)
 
-	// Read all tokens
-	for {
-		t := lexer.NextToken()
-		if t.GetTokenType() == antlr.TokenEOF {
-			break
-		}
-		fmt.Printf("type: %s, text: %s\n", lexer.SymbolicNames[t.GetTokenType()], t.GetText())
-	}
+	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
+
+	p := parser.NewcqlParser(stream)
+
+	listener := &CqlListener{}
+
+	antlr.ParseTreeWalkerDefault.Walk(listener, p.Function())
 }
