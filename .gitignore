@@ -1,3 +1,4 @@
+.DS_Store
 *.exe
 *.exe~
 *.dll
@@ -5,4 +6,4 @@
 *.dylib
 *.test
 *.out
-
+*.log
