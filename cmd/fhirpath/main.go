@@ -1,17 +1,22 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/antlr4-go/antlr/v4"
-	"github.com/hawyar/cql/fhirpath"
-	"github.com/hawyar/cql/repl"
+	fhirpath "github.com/hawyar/cql/fhirpath/parser"
 )
 
 type FHIRPathListener struct {
 	*fhirpath.BasefhirpathListener
 }
 
+func (f *FHIRPathListener) Report(ctx antlr.ParserRuleContext, msg string) {
+	fmt.Printf("Line %d:%d %s\n", ctx.GetStart().GetLine(), ctx.GetStart().GetColumn(), msg)
+}
+
 func main() {
-	input, err := antlr.NewFileStream("./examples/basic_fhirpath.fp")
+	input, err := antlr.NewFileStream("./examples/basic.fp")
 
 	if err != nil {
 		panic(err)
@@ -27,12 +32,8 @@ func main() {
 
 	antlr.ParseTreeWalkerDefault.Walk(listener, p.Expression())
 
-	// tokens := stream.GetAllTokens()
-
-	// for _, token := range tokens {
-	// 	fmt.Println(token)
-	// }
-
-	repl := repl.NewREPL()
-	repl.Start()
+	for _, token := range stream.GetAllTokens() {
+		fmt.Println(token.GetText())
+	}
+	// cql.NewREPL().Start()
 }

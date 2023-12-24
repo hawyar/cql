@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/antlr4-go/antlr/v4"
-	parser "github.com/hawyar/cql/cql"
+	parser "github.com/hawyar/cql/parser"
 )
 
 type CQLListener struct {
