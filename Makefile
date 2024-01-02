@@ -1,9 +1,12 @@
-BUILD_DIR = ./build
-GRAMMAR_DIR = ./grammar
-CQL_GRAMMAR = $(GRAMMAR_DIR)/cql.g4
-CQL_PKG = parser # parser instead of cql to avoid name collision with the root package
-FHIRPATH_GRAMMAR = $(GRAMMAR_DIR)/fhirpath.g4
-FHIRPATH_PKG =fhirpath
+BUILD_DIR=./build
+GRAMMAR_DIR=./grammar
+CQL_GRAMMAR=$(GRAMMAR_DIR)/cql.g4
+FHIRPATH_GRAMMAR=$(GRAMMAR_DIR)/fhirpath.g4
+CQL_OUT=./internal/parser
+CQL_PKG=parser
+FHIRPATH_OUT=./internal/fhirpath
+FHIRPATH_PKG=fhirpath
+
 
 OS=$(shell go env GOOS)
 ARCH=$(shell go env GOARCH)
@@ -19,11 +22,11 @@ build: cql fhirpath
 
 cql: has-antlr
 	@echo "Generating CQL parser..."
-	antlr -Dlanguage=Go -o $(CQL_PKG) -package $(CQL_PKG) -Xexact-output-dir $(CQL_GRAMMAR)
+	antlr -Dlanguage=Go -o $(CQL_OUT) -package $(CQL_PKG) -Xexact-output-dir $(CQL_GRAMMAR)
 
 fhirpath: has-antlr
 	@echo "Generating FHIRPath parser..."
-	antlr -Dlanguage=Go -o $(FHIRPATH_PKG)/parser -package $(FHIRPATH_PKG) -Xexact-output-dir $(FHIRPATH_GRAMMAR)
+	antlr -Dlanguage=Go -o $(FHIRPATH_OUT) -package $(FHIRPATH_PKG) -Xexact-output-dir $(FHIRPATH_GRAMMAR)
 
 has-antlr:
 	@which antlr > /dev/null || (echo "Please install antlr4 and add it to your PATH" && exit 1)
@@ -31,4 +34,4 @@ has-antlr:
 clean:
 	@echo "Cleaning up..."
 	go clean
-	rm -rf $(CQL_PKG) $(FHIRPATH_PKG)
+	rm -rf $(CQL_OUT) $(FHIRPATH_OUT)

@@ -1,39 +1,65 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-
-	"github.com/antlr4-go/antlr/v4"
-	fhirpath "github.com/hawyar/cql/fhirpath/parser"
+	"os"
 )
 
-type FHIRPathListener struct {
-	*fhirpath.BasefhirpathListener
-}
+const usage = `Usage: cql [options] [command]
 
-func (f *FHIRPathListener) Report(ctx antlr.ParserRuleContext, msg string) {
-	fmt.Printf("Line %d:%d %s\n", ctx.GetStart().GetLine(), ctx.GetStart().GetColumn(), msg)
-}
+COMMANDS:
+  repl 			Interactive REPL for CQL Library and FHIRPath expressions
+
+OPTIONS:
+  --version		-v   	Show version 
+  --help		-h      Show usage information
+
+EXAMPLES:
+  $ cql --help
+  $ cql --version`
 
 func main() {
-	input, err := antlr.NewFileStream("./examples/basic.fp")
+	// os.Args[1:]
 
-	if err != nil {
-		panic(err)
+	versionF := flag.Bool("version", false, "Show version")
+	helpF := flag.Bool("help", false, "Show usage information")
+
+	flag.Parse()
+
+	if *versionF {
+		fmt.Println("cql version 0.0.1")
+		os.Exit(0)
 	}
 
-	lexer := fhirpath.NewfhirpathLexer(input)
-
-	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
-
-	p := fhirpath.NewfhirpathParser(stream)
-
-	listener := &FHIRPathListener{}
-
-	antlr.ParseTreeWalkerDefault.Walk(listener, p.Expression())
-
-	for _, token := range stream.GetAllTokens() {
-		fmt.Println(token.GetText())
+	if *helpF {
+		fmt.Println(usage)
+		os.Exit(0)
 	}
-	// cql.NewREPL().Start()
+
+	if len(os.Args) < 2 {
+		fmt.Println(usage)
+		os.Exit(0)
+	}
+
+	// freader := cql.NewFileReader("./examples/basic.fp")
+
+	// input, err := antlr.NewFileStream("./examples/basic.fp")
+
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// lexer := fhirpath.NewfhirpathLexer(input)
+
+	// stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
+
+	// parser := fhirpath.NewfhirpathParser(stream)
+
+	// astBuilder := cql.NewFHIRPathASTBuilder()
+	// antlr.ParseTreeWalkerDefault.Walk(astBuilder, parser.Expression())
+
+	// for _, token := range stream.GetAllTokens() {
+	// 	println(token.GetText())
+	// }
 }

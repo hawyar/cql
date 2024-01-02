@@ -1,98 +1,89 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"os"
 
 	"github.com/antlr4-go/antlr/v4"
-	parser "github.com/hawyar/cql/parser"
+	"github.com/hawyar/cql"
+	"github.com/hawyar/cql/internal/parser"
 )
 
-type CQLListener struct {
-	*parser.BasecqlListener
-}
+const (
+	usage = `Usage: cql [options] [command]
 
-type Library struct {
-	Name       string
-	Version    string
-	Statements []Statement
-}
+COMMANDS:
+  repl 			Interactive REPL for CQL Library and FHIRPath expressions
 
-type Statement interface{}
+OPTIONS:
+  --version		-v   	Show version 
+  --help		-h      Show usage information
 
-type AST struct {
-	Library *Library
-}
-
-func NewAST() *AST {
-	return &AST{}
-}
-
-func (l *CQLListener) EnterLibrary(ctx *parser.LibraryContext) {
-	fmt.Printf("Enter Library: %s\n", ctx.GetText())
-}
-
-func (l *CQLListener) EnterLibraryDefinition(ctx *parser.LibraryDefinitionContext) {
-	fmt.Printf("Enter LibraryDefinition: %s\n", ctx.GetText())
-}
-
-func (l *CQLListener) EnterLibraryIdentifier(ctx *parser.LibraryIdentifierContext) {
-	fmt.Printf("Enter LibraryIdentifier: %s\n", ctx.GetText())
-}
-
-func (l *CQLListener) EnterIncludeDefinition(ctx *parser.IncludeDefinitionContext) {
-	fmt.Printf("Enter IncludeDefinition: %s\n", ctx.GetText())
-}
-
-func (l *CQLListener) EnterUsingDefinition(ctx *parser.UsingDefinitionContext) {
-	fmt.Printf("Enter UsingDefinition: %s\n", ctx.GetText())
-}
-
-func (l *CQLListener) EnterVersionSpecifier(ctx *parser.VersionSpecifierContext) {
-	fmt.Printf("Enter VersionSpecifier: %s\n", ctx.GetText())
-}
-
-func (l *CQLListener) EnterLocalIdentifier(ctx *parser.LocalIdentifierContext) {
-	fmt.Printf("Enter LocalIdentifier: %s\n", ctx.GetText())
-}
-
-func (l *CQLListener) EnterFunctionDefinition(ctx *parser.FunctionDefinitionContext) {
-	fmt.Printf("Enter FunctionDefinition: %s\n", ctx.GetText())
-}
-
-func (l *CQLListener) EnterExpressionDefinition(ctx *parser.ExpressionDefinitionContext) {
-	fmt.Printf("Enter ExpressionDefinition: %s\n", ctx.GetText())
-}
-
-func (l *CQLListener) EnterContextDefinition(ctx *parser.ContextDefinitionContext) {
-	line := ctx.GetStart().GetLine()
-	fmt.Printf("Enter ContextDefinition: %s\n", ctx.GetText())
-	fmt.Println("Line: ", line)
-}
-
-func (l *CQLListener) ExitContextDefinition(ctx *parser.ContextDefinitionContext) {
-	fmt.Printf("Exit ContextDefinition: %s\n", ctx.GetText())
-}
+EXAMPLES:
+  $ cql repl # start the REPL
+  $ cql file.cql # parse a CQL file`
+)
 
 func main() {
-	input, err := antlr.NewFileStream("./example/simple.cql")
+	version := flag.Bool("version", false, "Show version")
+	help := flag.Bool("help", false, "Show usage information")
 
-	if err != nil {
-		panic(err)
+	flag.Parse()
+
+	if *version {
+		fmt.Println("cql version", "0.0.1")
+		os.Exit(0)
 	}
 
-	lexer := parser.NewcqlLexer(input)
+	if *help {
+		fmt.Println(usage)
+		os.Exit(0)
+	}
+
+	if len(os.Args) < 2 {
+		fmt.Println(usage)
+		os.Exit(0)
+	}
+
+	if os.Args[1] == "repl" {
+		cql.NewREPL().Start()
+	}
+
+	source, err := ReadFile(os.Args[1])
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	lexer := parser.NewcqlLexer(source)
 
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 
 	p := parser.NewcqlParser(stream)
 
-	listener := &CQLListener{}
+	listener := cql.NewListener()
 
 	antlr.ParseTreeWalkerDefault.Walk(listener, p.Library())
+}
 
-	// tokens := stream.GetAllTokens()
+func ReadFile(path string) (*antlr.FileStream, error) {
+	if path == "" {
+		return nil, fmt.Errorf("file path is empty")
+	}
 
-	// for _, token := range tokens {
-	// 	fmt.Println(token)
-	// }
+	_, err := os.Stat(path)
+
+	if os.IsNotExist(err) {
+		return nil, fmt.Errorf("file does not exist: %s", path)
+	}
+
+	sink, err := antlr.NewFileStream(path)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return sink, nil
 }
