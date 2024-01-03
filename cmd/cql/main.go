@@ -63,6 +63,7 @@ func main() {
 
 	p := parser.NewcqlParser(stream)
 
+	p.BuildParseTrees = true
 	listener := cql.NewListener()
 
 	antlr.ParseTreeWalkerDefault.Walk(listener, p.Library())

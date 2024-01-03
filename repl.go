@@ -67,7 +67,7 @@ func (r *REPL) eval() {
 
 	parser := parser.NewcqlParser(stream)
 
-	antlr.ParseTreeWalkerDefault.Walk(r.builder, parser.Statement())
+	antlr.ParseTreeWalkerDefault.Walk(r.builder, parser.Expression())
 	// fmt.Println("last token:", stream.LT(-1).GetText())
 
 	if stream.LT(1).GetTokenType() == antlr.TokenEOF {

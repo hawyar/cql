@@ -39,8 +39,8 @@ type AST struct {
 	Library Library `json:"library"`
 }
 
-func NewAST() AST {
-	return AST{
+func NewAST() *AST {
+	return &AST{
 		Library: Library{
 			UsingDefinitions: []UsingDefinition{},
 		},
