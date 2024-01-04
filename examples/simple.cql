@@ -1,5 +1,5 @@
 
-library PopCalc version '1.0'
+library version '1.0' PopCalc
 
 using QUICK version '0.3.0'
 using AnotherLib

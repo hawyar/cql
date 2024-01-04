@@ -2,14 +2,11 @@ package cql
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
 	parser "github.com/hawyar/cql/internal/parser"
 )
-
-type errorListener struct {
-	*antlr.DefaultErrorListener
-}
 
 type node struct {
 	val  antlr.RuleContext
@@ -92,12 +89,6 @@ func line(ctx antlr.ParserRuleContext) {
 	fmt.Printf("%d:%d %s\n", ctx.GetStart().GetLine(), ctx.GetStart().GetColumn(), ctx.GetText())
 }
 
-func NewErrorListener() *errorListener {
-	return &errorListener{
-		DefaultErrorListener: antlr.NewDefaultErrorListener(),
-	}
-}
-
 func (l *Listener) EnterLibrary(ctx *parser.LibraryContext) {
 	l.stack.push(ctx)
 }
@@ -136,141 +127,141 @@ func (l *Listener) EnterIdentifier(ctx *parser.IdentifierContext) {
 	l.stack.push(ctx)
 }
 
-// func (l *Listener) ExitLibraryDefinition(ctx *parser.LibraryDefinitionContext) {
-// 	if l.stack.size() == 1 {
-// 		return
-// 	}
+func (l *Listener) ExitLibraryDefinition(ctx *parser.LibraryDefinitionContext) {
+	if l.stack.size() == 1 {
+		return
+	}
 
-// 	current := l.stack.peek()
+	current := l.stack.peek()
 
-// 	if current == nil {
-// 		return
-// 	}
+	if current == nil {
+		return
+	}
 
-// 	definition := LibraryDefinition{}
+	definition := LibraryDefinition{}
 
-// 	switch current.(type) {
-// 	case *parser.VersionSpecifierContext:
-// 		version := l.stack.pop()
-// 		definition.Version = strings.ReplaceAll(version.GetText(), "'", "")
-// 		ident := l.stack.pop()
-// 		definition.Name = ident.GetText()
-// 	case *parser.QualifiedIdentifierContext:
-// 		ident := l.stack.pop()
-// 		definition.Name = ident.GetText()
-// 	default:
-// 		fmt.Println("something is wrong, check the inserts in the previous branch")
-// 	}
-// 	l.ast.Library.LibraryDefinition = definition
-// 	l.stack.pop()
-// }
+	switch current.(type) {
+	case *parser.VersionSpecifierContext:
+		version := l.stack.pop()
+		definition.Version = strings.ReplaceAll(version.GetText(), "'", "")
+		ident := l.stack.pop()
+		definition.Name = ident.GetText()
+	case *parser.QualifiedIdentifierContext:
+		ident := l.stack.pop()
+		definition.Name = ident.GetText()
+	default:
+		fmt.Println("something is wrong, check the inserts in the previous branch")
+	}
+	l.ast.Library.LibraryDefinition = definition
+	l.stack.pop()
+}
 
-// func (l *Listener) EnterVersionSpecifier(ctx *parser.VersionSpecifierContext) {
-// 	l.stack.push(ctx)
-// }
+func (l *Listener) EnterVersionSpecifier(ctx *parser.VersionSpecifierContext) {
+	l.stack.push(ctx)
+}
 
-// func (l *Listener) EnterQualifiedIdentifier(ctx *parser.QualifiedIdentifierContext) {
-// 	l.stack.push(ctx)
-// }
+func (l *Listener) EnterQualifiedIdentifier(ctx *parser.QualifiedIdentifierContext) {
+	l.stack.push(ctx)
+}
 
-// func (l *Listener) EnterUsingDefinition(ctx *parser.UsingDefinitionContext) {
-// 	l.stack.push(ctx)
-// }
+func (l *Listener) EnterUsingDefinition(ctx *parser.UsingDefinitionContext) {
+	l.stack.push(ctx)
+}
 
-// func (l *Listener) ExitUsingDefinition(ctx *parser.UsingDefinitionContext) {
-// 	if l.stack.size() == 1 {
-// 		return
-// 	}
+func (l *Listener) ExitUsingDefinition(ctx *parser.UsingDefinitionContext) {
+	if l.stack.size() == 1 {
+		return
+	}
 
-// 	current := l.stack.peek()
+	current := l.stack.peek()
 
-// 	if current == nil {
-// 		return
-// 	}
+	if current == nil {
+		return
+	}
 
-// 	definition := UsingDefinition{}
+	definition := UsingDefinition{}
 
-// 	switch current.(type) {
-// 	case *parser.VersionSpecifierContext:
-// 		version := l.stack.pop()
-// 		definition.Version = strings.ReplaceAll(version.GetText(), "'", "")
-// 		ident := l.stack.pop()
-// 		definition.Name = ident.GetText()
-// 	case *parser.IdentifierContext:
-// 		ident := l.stack.pop()
-// 		definition.Name = ident.GetText()
-// 	default:
-// 		fmt.Println("something is wrong, check the inserts in the previous branch")
-// 	}
-// 	l.ast.Library.UsingDefinitions = append(l.ast.Library.UsingDefinitions, definition)
-// 	l.stack.pop()
-// }
+	switch current.(type) {
+	case *parser.VersionSpecifierContext:
+		version := l.stack.pop()
+		definition.Version = strings.ReplaceAll(version.GetText(), "'", "")
+		ident := l.stack.pop()
+		definition.Name = ident.GetText()
+	case *parser.IdentifierContext:
+		ident := l.stack.pop()
+		definition.Name = ident.GetText()
+	default:
+		fmt.Println("something is wrong, check the inserts in the previous branch")
+	}
+	l.ast.Library.UsingDefinitions = append(l.ast.Library.UsingDefinitions, definition)
+	l.stack.pop()
+}
 
-// func (l *Listener) EnterIdentifier(ctx *parser.IdentifierContext) {
-// 	l.stack.push(ctx)
-// }
+func (l *Listener) EnterIdentifier(ctx *parser.IdentifierContext) {
+	l.stack.push(ctx)
+}
 
-// func (l *Listener) EnterIncludeDefinition(ctx *parser.IncludeDefinitionContext) {
-// 	l.stack.push(ctx)
-// }
+func (l *Listener) EnterIncludeDefinition(ctx *parser.IncludeDefinitionContext) {
+	l.stack.push(ctx)
+}
 
-// func (l *Listener) ExitIncludeDefinition(ctx *parser.IncludeDefinitionContext) {
-// 	if l.stack.size() == 1 {
-// 		return
-// 	}
+func (l *Listener) ExitIncludeDefinition(ctx *parser.IncludeDefinitionContext) {
+	if l.stack.size() == 1 {
+		return
+	}
 
-// 	current := l.stack.peek()
+	current := l.stack.peek()
 
-// 	if current == nil {
-// 		return
-// 	}
+	if current == nil {
+		return
+	}
 
-// 	definition := IncludeDefinition{}
+	definition := IncludeDefinition{}
 
-// 	switch current.(type) {
-// 	case *parser.QualifiedIdentifierContext:
-// 		ident := l.stack.pop()
-// 		definition.Name = ident.GetText()
-// 	case *parser.VersionSpecifierContext:
-// 		version := l.stack.pop()
-// 		definition.Version = strings.ReplaceAll(version.GetText(), "'", "")
-// 		ident := l.stack.pop()
-// 		definition.Name = ident.GetText()
-// 	case *parser.IdentifierContext:
-// 		alias := l.stack.pop()
-// 		definition.Alias = alias.GetText()
+	switch current.(type) {
+	case *parser.QualifiedIdentifierContext:
+		ident := l.stack.pop()
+		definition.Name = ident.GetText()
+	case *parser.VersionSpecifierContext:
+		version := l.stack.pop()
+		definition.Version = strings.ReplaceAll(version.GetText(), "'", "")
+		ident := l.stack.pop()
+		definition.Name = ident.GetText()
+	case *parser.IdentifierContext:
+		alias := l.stack.pop()
+		definition.Alias = alias.GetText()
 
-// 		current = l.stack.peek()
-// 		if current == nil {
-// 			return
-// 		}
+		current = l.stack.peek()
+		if current == nil {
+			return
+		}
 
-// 		if _, ok := current.(*parser.VersionSpecifierContext); ok {
-// 			version := l.stack.pop()
-// 			definition.Version = strings.ReplaceAll(version.GetText(), "'", "")
-// 		}
+		if _, ok := current.(*parser.VersionSpecifierContext); ok {
+			version := l.stack.pop()
+			definition.Version = strings.ReplaceAll(version.GetText(), "'", "")
+		}
 
-// 		ident := l.stack.pop()
-// 		definition.Name = ident.GetText()
-// 	default:
-// 		fmt.Println("something is wrong, check the inserts in the previous branch")
-// 	}
-// 	l.ast.Library.IncludeDefinitions = append(l.ast.Library.IncludeDefinitions, definition)
-// 	l.stack.pop()
-// }
+		ident := l.stack.pop()
+		definition.Name = ident.GetText()
+	default:
+		fmt.Println("something is wrong, check the inserts in the previous branch")
+	}
+	l.ast.Library.IncludeDefinitions = append(l.ast.Library.IncludeDefinitions, definition)
+	l.stack.pop()
+}
 
-// func (l *Listener) EnterAccessModifier(ctx *parser.AccessModifierContext) {
-// 	l.stack.push(ctx)
-// }
+func (l *Listener) EnterAccessModifier(ctx *parser.AccessModifierContext) {
+	l.stack.push(ctx)
+}
 
-// func (l *Listener) EnterCodesystemDefinition(ctx *parser.CodesystemDefinitionContext) {
-// 	l.stack.push(ctx)
-// }
+func (l *Listener) EnterCodesystemDefinition(ctx *parser.CodesystemDefinitionContext) {
+	l.stack.push(ctx)
+}
 
-// func (l *Listener) EnterValuesetDefinition(ctx *parser.ValuesetDefinitionContext) {
-// 	l.stack.push(ctx)
-// }
+func (l *Listener) EnterValuesetDefinition(ctx *parser.ValuesetDefinitionContext) {
+	l.stack.push(ctx)
+}
 
-// func (l *Listener) EnterCodesystems(ctx *parser.CodesystemsContext) {
-// 	l.stack.push(ctx)
-// }
+func (l *Listener) EnterCodesystems(ctx *parser.CodesystemsContext) {
+	l.stack.push(ctx)
+}

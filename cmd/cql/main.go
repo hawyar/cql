@@ -57,13 +57,22 @@ func main() {
 		os.Exit(1)
 	}
 
+	// errListener := cql.NewErrorListener()
+
 	lexer := parser.NewcqlLexer(source)
+
+	// remove the default error listeners
+	// lexer.RemoveErrorListeners()
+	// lexer.AddErrorListener(errListener)
 
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 
 	p := parser.NewcqlParser(stream)
 
 	p.BuildParseTrees = true
+	// p.RemoveErrorListeners()
+	// p.AddErrorListener(errListener)
+
 	listener := cql.NewListener()
 
 	antlr.ParseTreeWalkerDefault.Walk(listener, p.Library())
