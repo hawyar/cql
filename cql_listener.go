@@ -8,6 +8,8 @@ import (
 
 	"github.com/antlr4-go/antlr/v4"
 	parser "github.com/hawyar/cql/internal/parser"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type node struct {
@@ -93,9 +95,10 @@ func (l *Listener) ExitLibrary(ctx *parser.LibraryContext) {
 
 	l.stack.pop()
 
-	jsonstr, _ := l.ast.MarshalJSON()
+	fmt.Println("stack size", l.stack.size())
 
-	fmt.Println(string(jsonstr))
+	// jsonstr, _ := l.ast.MarshalJSON()
+	// fmt.Println(string(jsonstr))
 
 	elm, _ := NewELM(l.ast)
 
@@ -138,69 +141,32 @@ func (l *Listener) EnterLibraryDefinition(ctx *parser.LibraryDefinitionContext) 
 }
 
 func (l *Listener) ExitLibraryDefinition(ctx *parser.LibraryDefinitionContext) {
-	if l.stack.peek() == nil {
-		return
+	l.ast.Library.Identifier.Identifier = ctx.QualifiedIdentifier().GetText()
+
+	if ctx.VersionSpecifier() != nil {
+		l.ast.Library.Identifier.Version = removeQuotes(ctx.VersionSpecifier().GetText())
 	}
-
-	switch l.stack.peek().(type) {
-	case *parser.VersionSpecifierContext:
-		version := l.stack.pop()
-		l.ast.Library.Identifier.Version = strings.ReplaceAll(version.GetText(), "'", "")
-		l.ExitLibraryDefinition(ctx)
-	case *parser.IdentifierContext:
-		ident := l.stack.pop()
-		l.ast.Library.Identifier.Path = append(l.ast.Library.Identifier.Path, ident.GetText())
-		l.ExitLibraryDefinition(ctx)
-
-	case *parser.QualifiedIdentifierContext:
-		ident := l.stack.pop()
-		l.ast.Library.Identifier.Idenitifier = ident.GetText()
-		l.ExitLibraryDefinition(ctx)
-	default:
-		l.stack.pop()
-	}
+	l.stack.pop()
 }
 
-func (l *Listener) EnterQualifiedIdentifier(ctx *parser.QualifiedIdentifierContext) {
-	l.stack.push(ctx)
+func removeQuotes(s string) string {
+	return s[1 : len(s)-1]
 }
-
-// func (l *Listener) ExitQualifiedIdentifier(ctx *parser.QualifiedIdentifierContext) {}
-
-func (l *Listener) EnterVersionSpecifier(ctx *parser.VersionSpecifierContext) {
-	l.stack.push(ctx)
-}
-
-func (l *Listener) EnterIdentifier(ctx *parser.IdentifierContext) {
-	l.stack.push(ctx)
-}
-
-func (l *Listener) VisitErrorNode(node antlr.ErrorNode) {
-	l.errs = append(l.errs, node)
-	l.ExitLibrary(nil)
-}
-
 func (l *Listener) EnterUsingDefinition(ctx *parser.UsingDefinitionContext) {
 	l.stack.push(ctx)
 }
 
 func (l *Listener) ExitUsingDefinition(ctx *parser.UsingDefinitionContext) {
-	if l.stack.peek() == nil {
-		return
+	def := UsingDefinition{
+		Name: ctx.ModelIdentifier().GetText(),
 	}
 
-	usedef := UsingDefinition{}
-
-	if _, ok := l.stack.peek().(*parser.VersionSpecifierContext); ok {
-		version := l.stack.pop()
-		usedef.Version = strings.ReplaceAll(version.GetText(), "'", "")
+	if ctx.VersionSpecifier() != nil {
+		def.Version = removeQuotes(ctx.VersionSpecifier().GetText())
 	}
+	l.ast.Library.UsingDefinitions = append(l.ast.Library.UsingDefinitions, def)
 
-	ident := l.stack.pop()
-	usedef.Name = ident.GetText()
-	l.ast.Library.UsingDefinitions = append(l.ast.Library.UsingDefinitions, usedef)
 	l.stack.pop()
-
 }
 
 func (l *Listener) EnterIncludeDefinition(ctx *parser.IncludeDefinitionContext) {
@@ -208,41 +174,83 @@ func (l *Listener) EnterIncludeDefinition(ctx *parser.IncludeDefinitionContext) 
 }
 
 func (l *Listener) ExitIncludeDefinition(ctx *parser.IncludeDefinitionContext) {
-	fmt.Println("exit include definition")
-
-	if l.stack.peek() == nil {
-		return
+	def := IncludeDefinition{
+		Name: ctx.QualifiedIdentifier().GetText(),
 	}
 
-	incdef := IncludeDefinition{}
-
-	if _, ok := l.stack.peek().(*parser.IdentifierContext); ok {
-		ident := l.stack.pop()
-		incdef.Alias = ident.GetText()
+	if ctx.VersionSpecifier() != nil {
+		def.Version = removeQuotes(ctx.VersionSpecifier().GetText())
 	}
 
-	if _, ok := l.stack.peek().(*parser.VersionSpecifierContext); ok {
-		version := l.stack.pop()
-		incdef.Version = strings.ReplaceAll(version.GetText(), "'", "")
+	if ctx.LocalIdentifier() != nil {
+		def.Alias = ctx.LocalIdentifier().GetText()
 	}
 
-	if _, ok := l.stack.peek().(*parser.IdentifierContext); ok {
-		for !l.stack.isEmpty() {
-			if _, ok := l.stack.peek().(*parser.IdentifierContext); ok {
-				ident := l.stack.pop()
-				incdef.Path = append(incdef.Path, ident.GetText())
-			} else {
-				break
-			}
-		}
-	}
-
-	if _, ok := l.stack.peek().(*parser.QualifiedIdentifierContext); ok {
-		ident := l.stack.pop()
-		incdef.Name = ident.GetText()
-	}
-
-	l.ast.Library.IncludeDefinitions = append(l.ast.Library.IncludeDefinitions, incdef)
+	l.ast.Library.IncludeDefinitions = append(l.ast.Library.IncludeDefinitions, def)
+	l.stack.pop()
 }
 
-// skip *CodesystemDefinitionContext
+func (l *Listener) EnterValuesetDefinition(ctx *parser.ValuesetDefinitionContext) {
+	l.stack.push(ctx)
+}
+
+func (l *Listener) ExitValuesetDefinition(ctx *parser.ValuesetDefinitionContext) {
+	set := ValuesetDefinition{
+		Name:           removeQuotes(ctx.Identifier().GetText()),
+		AccessModifier: "Public",
+	}
+
+	if ctx.AccessModifier() != nil {
+		set.AccessModifier = cases.Title(language.English).String(strings.ToLower(ctx.AccessModifier().GetText()))
+	}
+
+	if ctx.VersionSpecifier() != nil {
+		set.Version = removeQuotes(ctx.VersionSpecifier().GetText())
+	}
+
+	if ctx.ValuesetId() != nil {
+		ctx.ValuesetId().GetText()
+		set.Id = removeQuotes(ctx.ValuesetId().GetText())
+	}
+
+	if ctx.Codesystems() != nil {
+		for _, cs := range ctx.Codesystems().(*parser.CodesystemsContext).AllCodesystemIdentifier() {
+			// TODO: handle delimited identifiers
+			set.Codesystems = append(set.Codesystems, Codesystems{
+				Identifier: cs.Identifier().GetText(),
+			})
+
+		}
+	}
+	l.ast.Library.ValuesetDefinitions = append(l.ast.Library.ValuesetDefinitions, set)
+	l.stack.pop()
+}
+
+func (l *Listener) EnterParameterDefinition(ctx *parser.ParameterDefinitionContext) {
+	l.stack.push(ctx)
+}
+
+func (l *Listener) ExitParameterDefinition(ctx *parser.ParameterDefinitionContext) {
+	param := Parameter{
+		Name:           ctx.Identifier().GetText(),
+		AccessModifier: "Public",
+	}
+
+	if ctx.AccessModifier() != nil {
+		param.AccessModifier = cases.Title(language.English).String(strings.ToLower(ctx.AccessModifier().GetText()))
+	}
+
+	l.ast.Library.Parameters = append(l.ast.Library.Parameters, param)
+	l.stack.pop()
+}
+
+func (l *Listener) EnterContextDefinition(ctx *parser.ContextDefinitionContext) {
+	l.stack.push(ctx)
+}
+
+func (l *Listener) ExitContextDefinition(ctx *parser.ContextDefinitionContext) {
+	l.ast.Library.Context = Context{
+		Identifier: ctx.Identifier().GetText(),
+	}
+	l.stack.pop()
+}
