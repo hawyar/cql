@@ -1,27 +1,36 @@
 package cql
 
+import (
+	"encoding/json"
+	"encoding/xml"
+)
+
 type ELM struct {
-	json string
-	ast  *AST // the underlying AST
+	ast *AST
 }
 
 func NewELM(ast *AST) (*ELM, error) {
-	jsontrs, err := ast.MarshalJSON()
+	return &ELM{
+		ast: ast,
+	}, nil
+}
+
+func (e *ELM) AST() *AST {
+	return e.ast
+}
+
+func (e *ELM) MarshalJSON() ([]byte, error) {
+	jsonMap := map[string]interface{}{"library": e.ast.Library}
+
+	jstr, err := json.MarshalIndent(jsonMap, "", "  ")
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &ELM{
-		json: string(jsontrs),
-		ast:  ast,
-	}, nil
+	return jstr, nil
 }
 
-func (e *ELM) JSON() string {
-	return e.json
-}
-
-func (e *ELM) AST() *AST {
-	return e.ast
+func (e *ELM) MarshalXML(encoder *xml.Encoder, start xml.StartElement) error {
+	return encoder.EncodeElement(e.ast.Library, start)
 }

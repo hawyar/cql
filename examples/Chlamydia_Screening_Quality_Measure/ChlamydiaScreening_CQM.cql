@@ -1,8 +1,8 @@
-library ChlamydiaScreening_CQM version '2'
+library Org.Acme.ChlamydiaScreening_CQM version '2'
 
-using QUICK
+using QUICK version '1.0.0'
 
-valueset "Female Administrative Sex": '2.16.840.1.113883.3.560.100.2'
+public valueset "Female Administrative Sex": '2.16.840.1.113883.3.560.100.2'
 valueset "Other Female Reproductive Conditions": '2.16.840.1.113883.3.464.1003.111.12.1006'
 valueset "Genital Herpes": '2.16.840.1.113883.3.464.1003.110.12.1049'
 valueset "Genococcal Infections and Venereal Diseases": '2.16.840.1.113883.3.464.1003.112.12.1001'

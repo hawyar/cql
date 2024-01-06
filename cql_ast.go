@@ -6,14 +6,20 @@ import (
 
 type Statement interface{}
 
+type QualifiedIdentifier struct {
+	Identifier string `json:"identifier"`
+	Version    string `json:"version,omitempty"`
+}
+
 type Definition interface {
-	Name() string
+	Identifier() string
 	Version() string
 }
 
 type LibraryDefinition struct {
-	Name    string `json:"name"`
-	Version string `json:"version,omitempty"`
+	Idenitifier string   `json:"id"`
+	Version     string   `json:"version,omitempty"`
+	Path        []string `json:"path,omitempty"`
 }
 
 type UsingDefinition struct {
@@ -22,17 +28,18 @@ type UsingDefinition struct {
 }
 
 type IncludeDefinition struct {
-	Name    string `json:"name"`
-	Version string `json:"version,omitempty"`
-	Alias   string `json:"alias,omitempty"`
+	Name    string   `json:"name"`
+	Version string   `json:"version,omitempty"`
+	Alias   string   `json:"alias,omitempty"`
+	Path    []string `json:"path,omitempty"`
 }
 
 type Library struct {
-	LibraryDefinition  `json:"definition"`
-	UsingDefinitions   []UsingDefinition   `json:"using"`
-	IncludeDefinitions []IncludeDefinition `json:"include"`
-	Definitions        []Definition        `json:"definitions"`
-	Statements         []Statement         `json:"statements"`
+	Identifier         LibraryDefinition   `json:"idenitifier"`
+	UsingDefinitions   []UsingDefinition   `json:"usings,omitempty"`
+	IncludeDefinitions []IncludeDefinition `json:"includes,omitempty"`
+	Definitions        []Definition        `json:"definitions,omitempty"`
+	Statements         []Statement         `json:"statements,omitempty"`
 }
 
 type AST struct {

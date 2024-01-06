@@ -1,12 +1,4 @@
 
-library version '1.0' PopCalc
+library Lib1.Ctx version '1.0.0'
 
-using QUICK version '0.3.0'
-using AnotherLib
-
-include CMS153_Common version '1.3' called Common
-
-context Patient
-
-define AdultPatient:
-  age >= 18
+include CMS153_Common.Pkg version '1.3' called Common

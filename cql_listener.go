@@ -1,7 +1,9 @@
 package cql
 
 import (
+	"encoding/xml"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
@@ -20,8 +22,11 @@ type stack struct {
 
 type Listener struct {
 	parser.BasecqlListener
-	ast   *AST
-	stack *stack
+	ast    *AST
+	stack  *stack
+	errs   []antlr.ErrorNode
+	Parser antlr.Parser
+	Lexer  antlr.Lexer
 }
 
 func NewListener() *Listener {
@@ -72,19 +77,6 @@ func (s *stack) isEmpty() bool {
 	return s.curr == nil
 }
 
-func (s *stack) clear() {
-	s.curr = nil
-	s.count = 0
-}
-
-func (s *stack) print() {
-	curr := s.curr
-	for curr != nil {
-		println(curr.val.GetText())
-		curr = curr.next
-	}
-}
-
 func line(ctx antlr.ParserRuleContext) {
 	fmt.Printf("%d:%d %s\n", ctx.GetStart().GetLine(), ctx.GetStart().GetColumn(), ctx.GetText())
 }
@@ -94,74 +86,98 @@ func (l *Listener) EnterLibrary(ctx *parser.LibraryContext) {
 }
 
 func (l *Listener) ExitLibrary(ctx *parser.LibraryContext) {
+	if len(l.errs) > 0 {
+		fmt.Println("errors found")
+		os.Exit(1)
+	}
+
 	l.stack.pop()
 
-	// if !l.stack.isEmpty() {
-	// 	// TODO: fix this
-	// 	for {
-	// 		fmt.Println(l.stack.pop())
-	// 	}
-	// }
+	jsonstr, _ := l.ast.MarshalJSON()
 
-	jsonstr, err := l.ast.MarshalJSON()
+	fmt.Println(string(jsonstr))
+
+	elm, _ := NewELM(l.ast)
+
+	xmlF, err := os.Create("output.xml")
 
 	if err != nil {
 		fmt.Println(err)
-		return
 	}
 
-	fmt.Println(string(jsonstr))
+	encoder := xml.NewEncoder(xmlF)
+	err = elm.MarshalXML(encoder, xml.StartElement{Name: xml.Name{Local: "library"}})
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	jstr, err := elm.MarshalJSON()
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	f, err := os.Create("output.json")
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	defer f.Close()
+
+	_, err = f.Write(jstr)
+
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 func (l *Listener) EnterLibraryDefinition(ctx *parser.LibraryDefinitionContext) {
 	l.stack.push(ctx)
 }
 
-func (l *Listener) EnterQualifiedIdentifier(ctx *parser.QualifiedIdentifierContext) {
-	fmt.Println("qualified identifier", ctx.GetText())
-	l.stack.push(ctx)
-}
-
-func (l *Listener) EnterIdentifier(ctx *parser.IdentifierContext) {
-	fmt.Println("identifier", ctx.GetText())
-	l.stack.push(ctx)
-}
-
 func (l *Listener) ExitLibraryDefinition(ctx *parser.LibraryDefinitionContext) {
-	if l.stack.size() == 1 {
+	if l.stack.peek() == nil {
 		return
 	}
 
-	current := l.stack.peek()
-
-	if current == nil {
-		return
-	}
-
-	definition := LibraryDefinition{}
-
-	switch current.(type) {
+	switch l.stack.peek().(type) {
 	case *parser.VersionSpecifierContext:
 		version := l.stack.pop()
-		definition.Version = strings.ReplaceAll(version.GetText(), "'", "")
+		l.ast.Library.Identifier.Version = strings.ReplaceAll(version.GetText(), "'", "")
+		l.ExitLibraryDefinition(ctx)
+	case *parser.IdentifierContext:
 		ident := l.stack.pop()
-		definition.Name = ident.GetText()
+		l.ast.Library.Identifier.Path = append(l.ast.Library.Identifier.Path, ident.GetText())
+		l.ExitLibraryDefinition(ctx)
+
 	case *parser.QualifiedIdentifierContext:
 		ident := l.stack.pop()
-		definition.Name = ident.GetText()
+		l.ast.Library.Identifier.Idenitifier = ident.GetText()
+		l.ExitLibraryDefinition(ctx)
 	default:
-		fmt.Println("something is wrong, check the inserts in the previous branch")
+		l.stack.pop()
 	}
-	l.ast.Library.LibraryDefinition = definition
-	l.stack.pop()
 }
+
+func (l *Listener) EnterQualifiedIdentifier(ctx *parser.QualifiedIdentifierContext) {
+	l.stack.push(ctx)
+}
+
+// func (l *Listener) ExitQualifiedIdentifier(ctx *parser.QualifiedIdentifierContext) {}
 
 func (l *Listener) EnterVersionSpecifier(ctx *parser.VersionSpecifierContext) {
 	l.stack.push(ctx)
 }
 
-func (l *Listener) EnterQualifiedIdentifier(ctx *parser.QualifiedIdentifierContext) {
+func (l *Listener) EnterIdentifier(ctx *parser.IdentifierContext) {
 	l.stack.push(ctx)
+}
+
+func (l *Listener) VisitErrorNode(node antlr.ErrorNode) {
+	l.errs = append(l.errs, node)
+	l.ExitLibrary(nil)
 }
 
 func (l *Listener) EnterUsingDefinition(ctx *parser.UsingDefinitionContext) {
@@ -169,36 +185,22 @@ func (l *Listener) EnterUsingDefinition(ctx *parser.UsingDefinitionContext) {
 }
 
 func (l *Listener) ExitUsingDefinition(ctx *parser.UsingDefinitionContext) {
-	if l.stack.size() == 1 {
+	if l.stack.peek() == nil {
 		return
 	}
 
-	current := l.stack.peek()
+	usedef := UsingDefinition{}
 
-	if current == nil {
-		return
-	}
-
-	definition := UsingDefinition{}
-
-	switch current.(type) {
-	case *parser.VersionSpecifierContext:
+	if _, ok := l.stack.peek().(*parser.VersionSpecifierContext); ok {
 		version := l.stack.pop()
-		definition.Version = strings.ReplaceAll(version.GetText(), "'", "")
-		ident := l.stack.pop()
-		definition.Name = ident.GetText()
-	case *parser.IdentifierContext:
-		ident := l.stack.pop()
-		definition.Name = ident.GetText()
-	default:
-		fmt.Println("something is wrong, check the inserts in the previous branch")
+		usedef.Version = strings.ReplaceAll(version.GetText(), "'", "")
 	}
-	l.ast.Library.UsingDefinitions = append(l.ast.Library.UsingDefinitions, definition)
-	l.stack.pop()
-}
 
-func (l *Listener) EnterIdentifier(ctx *parser.IdentifierContext) {
-	l.stack.push(ctx)
+	ident := l.stack.pop()
+	usedef.Name = ident.GetText()
+	l.ast.Library.UsingDefinitions = append(l.ast.Library.UsingDefinitions, usedef)
+	l.stack.pop()
+
 }
 
 func (l *Listener) EnterIncludeDefinition(ctx *parser.IncludeDefinitionContext) {
@@ -206,62 +208,41 @@ func (l *Listener) EnterIncludeDefinition(ctx *parser.IncludeDefinitionContext) 
 }
 
 func (l *Listener) ExitIncludeDefinition(ctx *parser.IncludeDefinitionContext) {
-	if l.stack.size() == 1 {
+	fmt.Println("exit include definition")
+
+	if l.stack.peek() == nil {
 		return
 	}
 
-	current := l.stack.peek()
+	incdef := IncludeDefinition{}
 
-	if current == nil {
-		return
-	}
-
-	definition := IncludeDefinition{}
-
-	switch current.(type) {
-	case *parser.QualifiedIdentifierContext:
+	if _, ok := l.stack.peek().(*parser.IdentifierContext); ok {
 		ident := l.stack.pop()
-		definition.Name = ident.GetText()
-	case *parser.VersionSpecifierContext:
+		incdef.Alias = ident.GetText()
+	}
+
+	if _, ok := l.stack.peek().(*parser.VersionSpecifierContext); ok {
 		version := l.stack.pop()
-		definition.Version = strings.ReplaceAll(version.GetText(), "'", "")
-		ident := l.stack.pop()
-		definition.Name = ident.GetText()
-	case *parser.IdentifierContext:
-		alias := l.stack.pop()
-		definition.Alias = alias.GetText()
-
-		current = l.stack.peek()
-		if current == nil {
-			return
-		}
-
-		if _, ok := current.(*parser.VersionSpecifierContext); ok {
-			version := l.stack.pop()
-			definition.Version = strings.ReplaceAll(version.GetText(), "'", "")
-		}
-
-		ident := l.stack.pop()
-		definition.Name = ident.GetText()
-	default:
-		fmt.Println("something is wrong, check the inserts in the previous branch")
+		incdef.Version = strings.ReplaceAll(version.GetText(), "'", "")
 	}
-	l.ast.Library.IncludeDefinitions = append(l.ast.Library.IncludeDefinitions, definition)
-	l.stack.pop()
+
+	if _, ok := l.stack.peek().(*parser.IdentifierContext); ok {
+		for !l.stack.isEmpty() {
+			if _, ok := l.stack.peek().(*parser.IdentifierContext); ok {
+				ident := l.stack.pop()
+				incdef.Path = append(incdef.Path, ident.GetText())
+			} else {
+				break
+			}
+		}
+	}
+
+	if _, ok := l.stack.peek().(*parser.QualifiedIdentifierContext); ok {
+		ident := l.stack.pop()
+		incdef.Name = ident.GetText()
+	}
+
+	l.ast.Library.IncludeDefinitions = append(l.ast.Library.IncludeDefinitions, incdef)
 }
 
-func (l *Listener) EnterAccessModifier(ctx *parser.AccessModifierContext) {
-	l.stack.push(ctx)
-}
-
-func (l *Listener) EnterCodesystemDefinition(ctx *parser.CodesystemDefinitionContext) {
-	l.stack.push(ctx)
-}
-
-func (l *Listener) EnterValuesetDefinition(ctx *parser.ValuesetDefinitionContext) {
-	l.stack.push(ctx)
-}
-
-func (l *Listener) EnterCodesystems(ctx *parser.CodesystemsContext) {
-	l.stack.push(ctx)
-}
+// skip *CodesystemDefinitionContext

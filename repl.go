@@ -17,16 +17,16 @@ const (
 )
 
 type REPL struct {
-	scanner *bufio.Scanner
-	builder *Listener
-	buff    *bytes.Buffer
+	scanner  *bufio.Scanner
+	listener *Listener
+	buff     *bytes.Buffer
 }
 
 func NewREPL() *REPL {
 	return &REPL{
-		scanner: bufio.NewScanner(os.Stdin),
-		builder: NewListener(),
-		buff:    bytes.NewBufferString(""),
+		scanner:  bufio.NewScanner(os.Stdin),
+		listener: NewListener(),
+		buff:     bytes.NewBufferString(""),
 	}
 }
 
@@ -67,15 +67,15 @@ func (r *REPL) eval() {
 
 	parser := parser.NewcqlParser(stream)
 
-	antlr.ParseTreeWalkerDefault.Walk(r.builder, parser.Expression())
-	// fmt.Println("last token:", stream.LT(-1).GetText())
+	r.listener.Lexer = lexer
+	r.listener.Parser = parser
+
+	antlr.ParseTreeWalkerDefault.Walk(r.listener, parser.Library())
 
 	if stream.LT(1).GetTokenType() == antlr.TokenEOF {
 		fmt.Println("complete statement")
 		r.reset()
 	}
-	// otherwise, display another line of prompt and read more input
-	// fmt.Println(CQLPrefix)
 }
 
 func (r *REPL) reset() {

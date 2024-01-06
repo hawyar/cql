@@ -61,39 +61,46 @@ func main() {
 
 	lexer := parser.NewcqlLexer(source)
 
-	// remove the default error listeners
 	// lexer.RemoveErrorListeners()
 	// lexer.AddErrorListener(errListener)
 
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 
-	p := parser.NewcqlParser(stream)
+	parser := parser.NewcqlParser(stream)
 
-	p.BuildParseTrees = true
-	// p.RemoveErrorListeners()
-	// p.AddErrorListener(errListener)
+	// parser.RemoveErrorListeners()
+	// parser.AddErrorListener(errListener)
+
+	parser.BuildParseTrees = true
 
 	listener := cql.NewListener()
 
-	antlr.ParseTreeWalkerDefault.Walk(listener, p.Library())
+	listener.Lexer = lexer
+	listener.Parser = parser
+
+	antlr.ParseTreeWalkerDefault.Walk(listener, parser.Library())
 }
 
 func ReadFile(path string) (*antlr.FileStream, error) {
 	if path == "" {
-		return nil, fmt.Errorf("file path is empty")
+		return nil, fmt.Errorf("empty file path")
 	}
 
 	_, err := os.Stat(path)
 
 	if os.IsNotExist(err) {
-		return nil, fmt.Errorf("file does not exist: %s", path)
+		return nil, err
 	}
-
-	sink, err := antlr.NewFileStream(path)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return sink, nil
+	file, err := antlr.NewFileStream(path)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
 }
