@@ -16,22 +16,18 @@ ARCH=$(shell go env GOARCH)
 all: cql fhirpath build clean
 
 build: cql fhirpath
-	@echo "Building CQL and FHIRPath executables..."
 	GOOS=$(OS) GOARCH=$(ARCH) go build -o $(BUILD_DIR)/cql cmd/cql/main.go
 	GOOS=$(OS) GOARCH=$(ARCH) go build -o $(BUILD_DIR)/fhirpath cmd/fhirpath/main.go
 
 cql: has-antlr
-	@echo "Generating CQL parser..."
 	antlr -Dlanguage=Go -o $(CQL_OUT) -package $(CQL_PKG) -Xexact-output-dir $(CQL_GRAMMAR)
 
 fhirpath: has-antlr
-	@echo "Generating FHIRPath parser..."
 	antlr -Dlanguage=Go -o $(FHIRPATH_OUT) -package $(FHIRPATH_PKG) -Xexact-output-dir $(FHIRPATH_GRAMMAR)
 
 has-antlr:
 	@which antlr > /dev/null || (echo "Please install antlr4 and add it to your PATH" && exit 1)
 
 clean:
-	@echo "Cleaning up..."
 	go clean
 	rm -rf $(CQL_OUT) $(FHIRPATH_OUT)

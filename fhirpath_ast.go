@@ -1,19 +1,9 @@
 package cql
 
-import (
-	fhirpath "github.com/hawyar/cql/internal/fhirpath"
-)
-
-type PathListener struct {
-	*fhirpath.BasefhirpathListener
+type FHIRPathAST struct {
+	Expression string `json:"expression"`
 }
 
-type Expression interface{}
-
-type PathAST struct {
-	Expression Expression
-}
-
-func NewPathAST() *PathAST {
-	return &PathAST{}
+func newFHIRPathAST() *FHIRPathAST {
+	return &FHIRPathAST{}
 }

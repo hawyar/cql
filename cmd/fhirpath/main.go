@@ -4,9 +4,14 @@ import (
 	"flag"
 	"fmt"
 	"os"
+
+	"github.com/antlr4-go/antlr/v4"
+	"github.com/hawyar/cql"
+	"github.com/hawyar/cql/internal/fhirpath"
 )
 
-const usage = `Usage: cql [options] [command]
+const (
+	usage = `Usage: fhirpath [options] [command]
 
 COMMANDS:
   repl 			Interactive REPL for CQL Library and FHIRPath expressions
@@ -16,23 +21,21 @@ OPTIONS:
   --help		-h      Show usage information
 
 EXAMPLES:
-  $ cql --help
-  $ cql --version`
+  $ fhirpath repl # start the repl`
+)
 
 func main() {
-	// os.Args[1:]
-
-	versionF := flag.Bool("version", false, "Show version")
-	helpF := flag.Bool("help", false, "Show usage information")
+	version := flag.Bool("version", false, "Show version")
+	help := flag.Bool("help", false, "Show usage information")
 
 	flag.Parse()
 
-	if *versionF {
-		fmt.Println("cql version 0.0.1")
+	if *version {
+		fmt.Println("cql version", "0.0.1")
 		os.Exit(0)
 	}
 
-	if *helpF {
+	if *help {
 		fmt.Println(usage)
 		os.Exit(0)
 	}
@@ -42,24 +45,26 @@ func main() {
 		os.Exit(0)
 	}
 
-	// freader := cql.NewFileReader("./examples/basic.fp")
+	if os.Args[1] == "repl" {
+		cql.NewFHIRPathRepl().Start()
+	}
 
-	// input, err := antlr.NewFileStream("./examples/basic.fp")
+	// source, err := cql.ReadFile(os.Args[1])
 
 	// if err != nil {
-	// 	panic(err)
+	// 	fmt.Println(err)
+	// 	os.Exit(1)
 	// }
 
-	// lexer := fhirpath.NewfhirpathLexer(input)
+	lexer := fhirpath.NewfhirpathLexer(antlr.NewInputStream(os.Args[1]))
 
-	// stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
+	tokenStream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 
-	// parser := fhirpath.NewfhirpathParser(stream)
+	parser := fhirpath.NewfhirpathParser(tokenStream)
 
-	// astBuilder := cql.NewFHIRPathASTBuilder()
-	// antlr.ParseTreeWalkerDefault.Walk(astBuilder, parser.Expression())
+	parser.BuildParseTrees = true
 
-	// for _, token := range stream.GetAllTokens() {
-	// 	println(token.GetText())
-	// }
+	listener := cql.NewFHIRPathListener()
+
+	antlr.ParseTreeWalkerDefault.Walk(listener, parser.Expression())
 }

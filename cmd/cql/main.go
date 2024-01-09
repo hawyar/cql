@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/antlr4-go/antlr/v4"
@@ -10,24 +11,37 @@ import (
 	"github.com/hawyar/cql/internal/parser"
 )
 
+type Config struct {
+	Input  string
+	Output io.Writer
+	Format cql.OutputFormat
+}
+
 const (
 	usage = `Usage: cql [options] [command]
 
 COMMANDS:
-  repl 			Interactive REPL for CQL Library and FHIRPath expressions
+  repl 			interactive repl for CQL Library and FHIRPath expressions
 
 OPTIONS:
-  --version		-v   	Show version 
-  --help		-h      Show usage information
+  -version	  	show version
+  -help	 		show usage
+  -format 		output format either JSON or XML case insensitive (default: json)
+  -input 		input file path, (e.g. example.cql)
+  -output 		output file path, (e.g. output.json)
 
 EXAMPLES:
   $ cql repl # start the REPL
-  $ cql file.cql # parse a CQL file`
+  $ cql -input example.cql # parse a CQL file
+  $ cql -input example.cql -format xml # set output to xml`
 )
 
 func main() {
 	version := flag.Bool("version", false, "Show version")
 	help := flag.Bool("help", false, "Show usage information")
+	input := flag.String("input", "", "File path to a CQL file ")
+	format := flag.String("format", "json", "Output format, either JSON or XML")
+	// output := flag.String("output", "", "The output file path")
 
 	flag.Parse()
 
@@ -50,19 +64,28 @@ func main() {
 		cql.NewREPL().Start()
 	}
 
-	source, err := ReadFile(os.Args[1])
+	if *input == "" {
+		fmt.Println("invalid input file: ", *input)
+		os.Exit(1)
+	}
+
+	source, err := ReadFile(*input)
 
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	// errListener := cql.NewErrorListener()
+	config := &Config{
+		Input:  *input,
+		Output: os.Stdout,
+	}
+
+	if *format == "xml" || *format == "XML" {
+		config.Format = cql.XMLFormat
+	}
 
 	lexer := parser.NewcqlLexer(source)
-
-	// lexer.RemoveErrorListeners()
-	// lexer.AddErrorListener(errListener)
 
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 
@@ -74,9 +97,6 @@ func main() {
 	parser.BuildParseTrees = true
 
 	listener := cql.NewListener()
-
-	listener.Lexer = lexer
-	listener.Parser = parser
 
 	antlr.ParseTreeWalkerDefault.Walk(listener, parser.Library())
 }

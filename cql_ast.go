@@ -4,6 +4,13 @@ import (
 	"encoding/json"
 )
 
+type AccessModifier string
+
+const (
+	PrivateModifier AccessModifier = "Private"
+	PublicModifier  AccessModifier = "Public"
+)
+
 type Statement interface{}
 
 type Definition interface {
@@ -63,7 +70,7 @@ type AST struct {
 	Library Library `json:"library"`
 }
 
-func NewAST() *AST {
+func newAST() *AST {
 	return &AST{
 		Library: Library{
 			UsingDefinitions: []UsingDefinition{},

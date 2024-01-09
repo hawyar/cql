@@ -1,6 +1,8 @@
 package cql
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/xml"
 	"fmt"
 	"os"
@@ -22,19 +24,21 @@ type stack struct {
 	count int
 }
 
-type Listener struct {
-	parser.BasecqlListener
-	ast    *AST
-	stack  *stack
-	errs   []antlr.ErrorNode
-	Parser antlr.Parser
-	Lexer  antlr.Lexer
+type repl struct {
+	scanner *bufio.Scanner
+	buffer  *bytes.Buffer
 }
 
-func NewListener() *Listener {
-	return &Listener{
-		ast:   NewAST(),
-		stack: newStack(),
+type Listener struct {
+	parser.BasecqlListener
+	ast   *AST
+	stack *stack
+	errs  []antlr.ErrorNode
+}
+
+func newREPL() *repl {
+	return &repl{
+		scanner: bufio.NewScanner(os.Stdin),
 	}
 }
 
@@ -83,6 +87,18 @@ func line(ctx antlr.ParserRuleContext) {
 	fmt.Printf("%d:%d %s\n", ctx.GetStart().GetLine(), ctx.GetStart().GetColumn(), ctx.GetText())
 }
 
+func NewListener() *Listener {
+	return &Listener{
+		ast:   newAST(),
+		stack: newStack(),
+	}
+}
+
+func (l *Listener) VisitErrorNode(node antlr.ErrorNode) {
+	l.errs = append(l.errs, node)
+	fmt.Println("error node", node.GetText())
+}
+
 func (l *Listener) EnterLibrary(ctx *parser.LibraryContext) {
 	l.stack.push(ctx)
 }
@@ -95,10 +111,8 @@ func (l *Listener) ExitLibrary(ctx *parser.LibraryContext) {
 
 	l.stack.pop()
 
-	fmt.Println("stack size", l.stack.size())
-
-	// jsonstr, _ := l.ast.MarshalJSON()
-	// fmt.Println(string(jsonstr))
+	jsonstr, _ := l.ast.MarshalJSON()
+	fmt.Println(string(jsonstr))
 
 	elm, _ := NewELM(l.ast)
 
@@ -197,7 +211,7 @@ func (l *Listener) EnterValuesetDefinition(ctx *parser.ValuesetDefinitionContext
 func (l *Listener) ExitValuesetDefinition(ctx *parser.ValuesetDefinitionContext) {
 	set := ValuesetDefinition{
 		Name:           removeQuotes(ctx.Identifier().GetText()),
-		AccessModifier: "Public",
+		AccessModifier: string(PublicModifier),
 	}
 
 	if ctx.AccessModifier() != nil {
@@ -215,7 +229,6 @@ func (l *Listener) ExitValuesetDefinition(ctx *parser.ValuesetDefinitionContext)
 
 	if ctx.Codesystems() != nil {
 		for _, cs := range ctx.Codesystems().(*parser.CodesystemsContext).AllCodesystemIdentifier() {
-			// TODO: handle delimited identifiers
 			set.Codesystems = append(set.Codesystems, Codesystems{
 				Identifier: cs.Identifier().GetText(),
 			})
@@ -231,9 +244,13 @@ func (l *Listener) EnterParameterDefinition(ctx *parser.ParameterDefinitionConte
 }
 
 func (l *Listener) ExitParameterDefinition(ctx *parser.ParameterDefinitionContext) {
+	if ctx.TypeSpecifier() != nil {
+		fmt.Println("type of param", ctx.TypeSpecifier().GetText())
+	}
+
 	param := Parameter{
 		Name:           ctx.Identifier().GetText(),
-		AccessModifier: "Public",
+		AccessModifier: string(PrivateModifier),
 	}
 
 	if ctx.AccessModifier() != nil {
@@ -249,8 +266,10 @@ func (l *Listener) EnterContextDefinition(ctx *parser.ContextDefinitionContext) 
 }
 
 func (l *Listener) ExitContextDefinition(ctx *parser.ContextDefinitionContext) {
+	fmt.Println("context definition", ctx.Identifier().GetText())
 	l.ast.Library.Context = Context{
 		Identifier: ctx.Identifier().GetText(),
 	}
+
 	l.stack.pop()
 }

@@ -1,4 +1,4 @@
-library Org.Acme.ChlamydiaScreening_CQM version '2'
+library ChlamydiaScreening_CQM version '2'
 
 using QUICK version '1.0.0'
 

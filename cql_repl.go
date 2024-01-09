@@ -11,9 +11,8 @@ import (
 )
 
 const (
-	CQLPrefix      = "cql> "
-	FHIRPathPrefix = "fhirpath> "
-	Exit           = ".exit"
+	CQLPrefix = "cql> "
+	ExitCmd   = ".exit"
 )
 
 type REPL struct {
@@ -48,7 +47,7 @@ func (r *REPL) read() {
 
 	next := r.scanner.Text()
 
-	if next == Exit {
+	if next == ExitCmd {
 		fmt.Println("Exiting...")
 		os.Exit(0)
 	}
@@ -66,9 +65,6 @@ func (r *REPL) eval() {
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 
 	parser := parser.NewcqlParser(stream)
-
-	r.listener.Lexer = lexer
-	r.listener.Parser = parser
 
 	antlr.ParseTreeWalkerDefault.Walk(r.listener, parser.Library())
 
