@@ -16,8 +16,14 @@ parameter MeasurementPeriod default Interval[@2013-01-01, @2014-01-01)
 // context
 context Patient
 
+
+// code
+// code "Hepatitis Type B (SNOMED)": '66071002' from "SNOMED-CT" display 'Viral hepatitis type B (disorder)'
+// code "Hepatitis Type B (ICD-10)": 'B18.1' from "ICD-10-CM" display 'Chronic viral hepatitis B without delta-agent'
+
+
 // define statement
-define "Patient16To23AndFemale":
-  AgeInYearsAt(start of MeasurementPeriod) >= 16
-    and AgeInYearsAt(start of MeasurementPeriod) < 24
-    and Patient.gender in "Female Administrative Sex"
+define "MalePatient20To40":
+  AgeInYearsAt(start of MeasurementPeriod) >= 20
+    and AgeInYearsAt(start of MeasurementPeriod) < 40
+    and Patient.gender in "Male Administrative Sex"

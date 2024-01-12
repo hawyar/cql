@@ -11,11 +11,8 @@ const (
 	PublicModifier  AccessModifier = "Public"
 )
 
-type Statement interface{}
-
-type Definition interface {
-	Identifier() string
-	Version() string
+type Statement interface {
+	IsContext() bool
 }
 
 type LibraryDefinition struct {
@@ -62,7 +59,6 @@ type Library struct {
 	ValuesetDefinitions []ValuesetDefinition `json:"valueSets,omitempty"`
 	Parameters          []Parameter          `json:"parameters,omitempty"`
 	Context             Context              `json:"contexts,omitempty"`
-	Definitions         []Definition         `json:"definitions,omitempty"`
 	Statements          []Statement          `json:"statements,omitempty"`
 }
 

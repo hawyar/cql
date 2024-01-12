@@ -94,11 +94,32 @@ func main() {
 	// parser.RemoveErrorListeners()
 	// parser.AddErrorListener(errListener)
 
-	parser.BuildParseTrees = true
+	var entry antlr.RuleContext
 
-	listener := cql.NewListener()
+	// library
+	if parser.GetTokenStream().LT(1).GetTokenType() == 1 {
+		entry = parser.Library()
 
-	antlr.ParseTreeWalkerDefault.Walk(listener, parser.Library())
+		parser.BuildParseTrees = true
+
+		listener := cql.NewListener()
+
+		antlr.ParseTreeWalkerDefault.Walk(listener, entry)
+		return
+	}
+
+	// statement
+	if parser.GetTokenStream().LT(1).GetTokenType() == 27 {
+		entry = parser.Statement()
+
+		parser.BuildParseTrees = true
+
+		listener := cql.NewListener()
+		antlr.ParseTreeWalkerDefault.Walk(listener, entry)
+		return
+	}
+
+	fmt.Println("invalid input file: ", *input)
 }
 
 func ReadFile(path string) (*antlr.FileStream, error) {

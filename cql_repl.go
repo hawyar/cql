@@ -15,21 +15,21 @@ const (
 	ExitCmd   = ".exit"
 )
 
-type REPL struct {
+type Repl struct {
 	scanner  *bufio.Scanner
 	listener *Listener
 	buff     *bytes.Buffer
 }
 
-func NewREPL() *REPL {
-	return &REPL{
+func NewREPL() *Repl {
+	return &Repl{
 		scanner:  bufio.NewScanner(os.Stdin),
 		listener: NewListener(),
 		buff:     bytes.NewBufferString(""),
 	}
 }
 
-func (r *REPL) Start() {
+func (r *Repl) Start() {
 	fmt.Println("Welcome to the CQL repl!\nType 'help' for help.")
 
 	for {
@@ -38,7 +38,7 @@ func (r *REPL) Start() {
 	}
 }
 
-func (r *REPL) read() {
+func (r *Repl) read() {
 	fmt.Print(CQLPrefix)
 
 	if !r.scanner.Scan() {
@@ -55,7 +55,7 @@ func (r *REPL) read() {
 	r.buff.WriteString(next)
 }
 
-func (r *REPL) eval() {
+func (r *Repl) eval() {
 	input := r.buff.String()
 
 	fmt.Println("current buffer:", input)
@@ -74,6 +74,6 @@ func (r *REPL) eval() {
 	}
 }
 
-func (r *REPL) reset() {
+func (r *Repl) reset() {
 	r.buff.Reset()
 }
