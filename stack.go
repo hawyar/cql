@@ -7,8 +7,9 @@ import (
 )
 
 type node struct {
-	val  antlr.RuleContext
-	next *node
+	val        antlr.RuleContext
+	next       *node
+	childCount int
 }
 
 type stack struct {
@@ -31,14 +32,14 @@ func (s *stack) peek() antlr.RuleContext {
 	return s.curr.val
 }
 
-func (s *stack) push(val antlr.RuleContext) {
+func (s *stack) push(val antlr.RuleContext, depth int) {
 	if s.curr == nil {
-		s.curr = &node{val, nil}
+		s.curr = &node{val, nil, depth}
 		s.count++
 		return
 	}
 
-	s.curr = &node{val, s.curr}
+	s.curr = &node{val, s.curr, depth}
 	s.count++
 }
 

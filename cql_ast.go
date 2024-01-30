@@ -11,6 +11,19 @@ const (
 	PublicModifier  AccessModifier = "Public"
 )
 
+type Identifier struct {
+	Identifier string
+	Range      Range
+}
+
+type QuotedIdentifier struct {
+	identifier string
+}
+
+func (q *QuotedIdentifier) Name() string {
+	return q.identifier
+}
+
 type Statement interface {
 	IsContext() bool
 }
@@ -52,26 +65,25 @@ type Codesystems struct {
 	Identifier string `json:"identifier"`
 }
 
+// type Library struct {
+// 	Identifier          LibraryDefinition    `json:"idenitifier"`
+// 	UsingDefinitions    []UsingDefinition    `json:"usings,omitempty"`
+// 	IncludeDefinitions  []IncludeDefinition  `json:"includes,omitempty"`
+// 	ValuesetDefinitions []ValuesetDefinition `json:"valueSets,omitempty"`
+// 	Parameters          []Parameter          `json:"parameters,omitempty"`
+// 	Context             Context              `json:"contexts,omitempty"`
+// 	Statements          []Statement          `json:"statements,omitempty"`
+// 	Range               Range                `json:"range"`
+// }
+
 type Library struct {
-	Identifier          LibraryDefinition    `json:"idenitifier"`
-	UsingDefinitions    []UsingDefinition    `json:"usings,omitempty"`
-	IncludeDefinitions  []IncludeDefinition  `json:"includes,omitempty"`
-	ValuesetDefinitions []ValuesetDefinition `json:"valueSets,omitempty"`
-	Parameters          []Parameter          `json:"parameters,omitempty"`
-	Context             Context              `json:"contexts,omitempty"`
-	Statements          []Statement          `json:"statements,omitempty"`
+	LibDef LibraryDefinition `json:"idenitifier"`
+	Range  Range             `json:"range"`
 }
 
 type AST struct {
 	Library Library `json:"library"`
-}
-
-func newAST() *AST {
-	return &AST{
-		Library: Library{
-			UsingDefinitions: []UsingDefinition{},
-		},
-	}
+	Range
 }
 
 func (a *AST) MarshalJSON() ([]byte, error) {

@@ -1,7 +1,6 @@
+library "Header1".Simple_Lib.`DelimtedLib`."QuotedLib"
 
-// library definition
-library Lib1.Ctx version '1.0.0'
-
+include CMS153_Common version '1.3' called Common
 // using (data models)
 include CMS153_Common version '1.3' called Common
 include FHIR
@@ -27,3 +26,16 @@ define "MalePatient20To40":
   AgeInYearsAt(start of MeasurementPeriod) >= 20
     and AgeInYearsAt(start of MeasurementPeriod) < 40
     and Patient.gender in "Male Administrative Sex"
+
+define function ToCalendarUnit(unit System.String):
+    case unit
+        when 'ms' then 'millisecond'
+        when 's' then 'second'
+        when 'min' then 'minute'
+        when 'h' then 'hour'
+        when 'd' then 'day'
+        when 'wk' then 'week'
+        when 'mo' then 'month'
+        when 'a' then 'year'
+        else unit
+    end

@@ -6,8 +6,6 @@ CQL_OUT=./internal/parser
 CQL_PKG=parser
 FHIRPATH_OUT=./internal/fhirpath
 FHIRPATH_PKG=fhirpath
-
-
 OS=$(shell go env GOOS)
 ARCH=$(shell go env GOARCH)
 
@@ -16,6 +14,7 @@ ARCH=$(shell go env GOARCH)
 all: cql fhirpath build clean
 
 build: cql fhirpath
+	mkdir -p $(BUILD_DIR)
 	GOOS=$(OS) GOARCH=$(ARCH) go build -o $(BUILD_DIR)/cql cmd/cql/main.go
 	GOOS=$(OS) GOARCH=$(ARCH) go build -o $(BUILD_DIR)/fhirpath cmd/fhirpath/main.go
 
@@ -31,3 +30,4 @@ has-antlr:
 clean:
 	go clean
 	rm -rf $(CQL_OUT) $(FHIRPATH_OUT)
+

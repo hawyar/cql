@@ -21,7 +21,7 @@ OPTIONS:
   --help		-h      Show usage information
 
 EXAMPLES:
-  $ fhirpath repl # start the repl`
+  $ fhirpath repl`
 )
 
 func main() {

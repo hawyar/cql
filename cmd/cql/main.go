@@ -3,123 +3,69 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
+	"log"
 	"os"
+	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/hawyar/cql"
-	"github.com/hawyar/cql/internal/parser"
-)
-
-type Config struct {
-	Input  string
-	Output io.Writer
-	Format cql.OutputFormat
-}
-
-const (
-	usage = `Usage: cql [options] [command]
-
-COMMANDS:
-  repl 			interactive repl for CQL Library and FHIRPath expressions
-
-OPTIONS:
-  -version	  	show version
-  -help	 		show usage
-  -format 		output format either JSON or XML case insensitive (default: json)
-  -input 		input file path, (e.g. example.cql)
-  -output 		output file path, (e.g. output.json)
-
-EXAMPLES:
-  $ cql repl # start the REPL
-  $ cql -input example.cql # parse a CQL file
-  $ cql -input example.cql -format xml # set output to xml`
 )
 
 func main() {
 	version := flag.Bool("version", false, "Show version")
 	help := flag.Bool("help", false, "Show usage information")
+
 	input := flag.String("input", "", "File path to a CQL file ")
 	format := flag.String("format", "json", "Output format, either JSON or XML")
-	// output := flag.String("output", "", "The output file path")
+	debug := flag.Bool("debug", false, "Print AST to stdout")
+	repl := flag.Bool("repl", false, "Interactive REPL")
 
 	flag.Parse()
 
-	if *version {
-		fmt.Println("cql version", "0.0.1")
+	if version != nil && *version {
+		fmt.Println("cql version", "1.0.0")
 		os.Exit(0)
 	}
 
-	if *help {
-		fmt.Println(usage)
+	if help != nil && *help {
+		showUsage()
 		os.Exit(0)
 	}
 
-	if len(os.Args) < 2 {
-		fmt.Println(usage)
-		os.Exit(0)
+	if repl != nil && *repl {
+		cql.NewREPL(cql.DefaultConfig()).Start()
+		return
 	}
 
-	if os.Args[1] == "repl" {
-		cql.NewREPL().Start()
-	}
+	config := cql.DefaultConfig()
 
-	if *input == "" {
-		fmt.Println("invalid input file: ", *input)
-		os.Exit(1)
-	}
-
-	source, err := ReadFile(*input)
-
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	config := &Config{
-		Input:  *input,
-		Output: os.Stdout,
-	}
-
-	if *format == "xml" || *format == "XML" {
+	if strings.ToLower(*format) == "xml" {
 		config.Format = cql.XMLFormat
 	}
 
-	lexer := parser.NewcqlLexer(source)
-
-	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
-
-	parser := parser.NewcqlParser(stream)
-
-	// parser.RemoveErrorListeners()
-	// parser.AddErrorListener(errListener)
-
-	var entry antlr.RuleContext
-
-	// library
-	if parser.GetTokenStream().LT(1).GetTokenType() == 1 {
-		entry = parser.Library()
-
-		parser.BuildParseTrees = true
-
-		listener := cql.NewListener()
-
-		antlr.ParseTreeWalkerDefault.Walk(listener, entry)
-		return
+	if debug != nil && *debug {
+		config.Debug = true
 	}
 
-	// statement
-	if parser.GetTokenStream().LT(1).GetTokenType() == 27 {
-		entry = parser.Statement()
-
-		parser.BuildParseTrees = true
-
-		listener := cql.NewListener()
-		antlr.ParseTreeWalkerDefault.Walk(listener, entry)
-		return
+	if input == nil || *input == "" {
+		showUsage()
+		os.Exit(1)
 	}
 
-	fmt.Println("invalid input file: ", *input)
+	fstream, err := ReadFile(*input)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("input:", fstream.InputStream.GetText(0, fstream.Size()))
+
+	// _, err = cql.Parse(fstream, config)
+
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// os.Exit(0)
 }
 
 func ReadFile(path string) (*antlr.FileStream, error) {
@@ -137,11 +83,31 @@ func ReadFile(path string) (*antlr.FileStream, error) {
 		return nil, err
 	}
 
-	file, err := antlr.NewFileStream(path)
+	fstream, err := antlr.NewFileStream(path)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return file, nil
+	return fstream, nil
+}
+
+func showUsage() {
+	usage := `Usage: cql [FLAGS] [COMMANDS]
+
+COMMANDS:
+  parse 		parse a CQL file
+  repl 			start a CQL repl
+
+FLAGS:
+  -version	  	show version
+  -help	 		show usage
+  -input 		input file path
+  -output 		output file path, defaults to stdout
+  -format 		output format, either JSON or XML (default: json)
+
+Example:
+  $ cql -input example.cql -format xml parse
+  $ cql repl`
+	fmt.Println(usage)
 }
