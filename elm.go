@@ -17,7 +17,7 @@ type ELM struct {
 	format OutputFormat
 }
 
-func NewELM(ast *AST) (*ELM, error) {
+func NewELMFromAST(ast *AST) (*ELM, error) {
 	return &ELM{
 		ast:    ast,
 		format: JSONFormat,

@@ -11,26 +11,60 @@ const (
 	PublicModifier  AccessModifier = "Public"
 )
 
-type Identifier struct {
-	Identifier string
-	Range      Range
-}
-
-type QuotedIdentifier struct {
-	identifier string
-}
-
-func (q *QuotedIdentifier) Name() string {
-	return q.identifier
+type Program struct {
+	Library Library `json:"Library"`
+	File    string  `json:"File"`
+	Loc     Loc     `json:"Range"`
 }
 
 type Statement interface {
 	IsContext() bool
 }
 
+type Library struct {
+	LibDef LibraryDefinition `json:"LibraryDefinition"`
+	Loc    Loc               `json:"Loc"`
+}
+
+type AST struct {
+	Library Library `json:"library"`
+	Loc     Loc     `json:"range"`
+}
+
+type Idenitifier interface {
+	Name() string
+	Loc() Loc
+}
+
+type BaseIdentifier struct {
+	name string `json:"name"`
+	loc  Loc    `json:"range"`
+}
+
+func (b *BaseIdentifier) Name() string {
+	return b.name
+}
+
+func (b *BaseIdentifier) Loc() Loc {
+	return b.loc
+}
+
+type QuotedIdentifier struct {
+	name string `json:"name"`
+	loc  Loc    `json:"range"`
+}
+
+func (q *QuotedIdentifier) Name() string {
+	return q.name
+}
+
+func (q *QuotedIdentifier) Loc() Loc {
+	return q.loc
+}
+
 type LibraryDefinition struct {
-	Identifier string `json:"id"`
-	Version    string `json:"version,omitempty"`
+	Identifier Idenitifier `json:"identifier"`
+	Version    string      `json:"version,omitempty"`
 }
 
 type UsingDefinition struct {
@@ -76,18 +110,8 @@ type Codesystems struct {
 // 	Range               Range                `json:"range"`
 // }
 
-type Library struct {
-	LibDef LibraryDefinition `json:"idenitifier"`
-	Range  Range             `json:"range"`
-}
-
-type AST struct {
-	Library Library `json:"library"`
-	Range
-}
-
-func (a *AST) MarshalJSON() ([]byte, error) {
-	jstr, err := json.MarshalIndent(a.Library, "", "  ")
+func (a *Program) JSON() ([]byte, error) {
+	jstr, err := json.MarshalIndent(a, "", "  ")
 
 	if err != nil {
 		return nil, err

@@ -11,13 +11,33 @@ import (
 	"github.com/hawyar/cql"
 )
 
+func showUsage() {
+	usage := `Usage: cql [FLAGS] [COMMANDS]
+
+COMMANDS:
+  parse 		parse a CQL file
+  repl 			start a CQL repl
+
+FLAGS:
+  -version	  	show version
+  -help	 		show usage
+  -input 		input file path
+  -output 		output file path, defaults to stdout
+  -format 		output format, either JSON or XML (default: json)
+
+Example:
+  $ cql -input example.cql -format xml parse
+  $ cql repl`
+	fmt.Println(usage)
+}
+
 func main() {
 	version := flag.Bool("version", false, "Show version")
 	help := flag.Bool("help", false, "Show usage information")
 
-	input := flag.String("input", "", "File path to a CQL file ")
+	input := flag.String("input", "", "File path to a CQL file")
+	output := flag.String("output", "", "Output file path, defaults to stdout")
 	format := flag.String("format", "json", "Output format, either JSON or XML")
-	debug := flag.Bool("debug", false, "Print AST to stdout")
 	repl := flag.Bool("repl", false, "Interactive REPL")
 
 	flag.Parse()
@@ -33,42 +53,60 @@ func main() {
 	}
 
 	if repl != nil && *repl {
-		cql.NewREPL(cql.DefaultConfig()).Start()
+		cql.NewREPL(cql.DefaultOptions()).Start()
 		return
 	}
 
-	config := cql.DefaultConfig()
+	opt := cql.DefaultOptions()
 
 	if strings.ToLower(*format) == "xml" {
-		config.Format = cql.XMLFormat
-	}
-
-	if debug != nil && *debug {
-		config.Debug = true
+		opt.Format = cql.XMLFormat
 	}
 
 	if input == nil || *input == "" {
 		showUsage()
-		os.Exit(1)
+		return
 	}
 
-	fstream, err := ReadFile(*input)
+	fstream, err := FileStream(*input)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println("input:", fstream.InputStream.GetText(0, fstream.Size()))
+	prog, err := cql.Parse(fstream, opt)
 
-	// _, err = cql.Parse(fstream, config)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// os.Exit(0)
+	json, err := prog.JSON()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if opt.Output == os.Stdout {
+		fmt.Println(string(json))
+		return
+	}
+
+	outputFile, err := os.OpenFile(*output, os.O_CREATE|os.O_WRONLY, 0644)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer outputFile.Close()
+
+	n, err := outputFile.Write(json)
+
+	if err != nil || n != len(json) {
+		log.Fatal(err)
+	}
 }
 
-func ReadFile(path string) (*antlr.FileStream, error) {
+func FileStream(path string) (*antlr.FileStream, error) {
 	if path == "" {
 		return nil, fmt.Errorf("empty file path")
 	}
@@ -90,24 +128,4 @@ func ReadFile(path string) (*antlr.FileStream, error) {
 	}
 
 	return fstream, nil
-}
-
-func showUsage() {
-	usage := `Usage: cql [FLAGS] [COMMANDS]
-
-COMMANDS:
-  parse 		parse a CQL file
-  repl 			start a CQL repl
-
-FLAGS:
-  -version	  	show version
-  -help	 		show usage
-  -input 		input file path
-  -output 		output file path, defaults to stdout
-  -format 		output format, either JSON or XML (default: json)
-
-Example:
-  $ cql -input example.cql -format xml parse
-  $ cql repl`
-	fmt.Println(usage)
 }

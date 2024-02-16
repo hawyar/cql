@@ -10,8 +10,8 @@ Builds cql and puts the executable in the `build` directory
 
 ### Usage
 
-Evaluate a CQL file
+Parse a CQL expression
 
 ```bash
-cql -input <cql_file_path>.cql -format xml
+cql -input somefile.cql
 ```

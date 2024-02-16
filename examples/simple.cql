@@ -1,4 +1,4 @@
-library "Header1".Simple_Lib.`DelimtedLib`."QuotedLib"
+library SomeOrg.SimpleLib.Anotha1 version '1.0'
 
 include CMS153_Common version '1.3' called Common
 // using (data models)

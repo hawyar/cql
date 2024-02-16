@@ -16,16 +16,18 @@ const (
 )
 
 type Repl struct {
+	options  ParseOptions
 	scanner  *bufio.Scanner
-	listener *Listener
 	buff     *bytes.Buffer
+	listener CQLListener
 }
 
-func NewREPL() *Repl {
+func NewREPL(opt ParseOptions) *Repl {
 	return &Repl{
 		scanner:  bufio.NewScanner(os.Stdin),
-		listener: NewListener(),
+		listener: *NewCQLListener(nil),
 		buff:     bytes.NewBufferString(""),
+		options:  opt,
 	}
 }
 
