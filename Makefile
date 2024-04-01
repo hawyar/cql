@@ -16,13 +16,13 @@ all: cql fhirpath build clean
 build: cql fhirpath
 	mkdir -p $(BUILD_DIR)
 	GOOS=$(OS) GOARCH=$(ARCH) go build -o $(BUILD_DIR)/cql cmd/cql/main.go
-	GOOS=$(OS) GOARCH=$(ARCH) go build -o $(BUILD_DIR)/fhirpath cmd/fhirpath/main.go
+	# GOOS=$(OS) GOARCH=$(ARCH) go build -o $(BUILD_DIR)/fhirpath cmd/fhirpath/main.go
 
 cql: has-antlr
 	antlr -Dlanguage=Go -o $(CQL_OUT) -package $(CQL_PKG) -Xexact-output-dir $(CQL_GRAMMAR)
 
-fhirpath: has-antlr
-	antlr -Dlanguage=Go -o $(FHIRPATH_OUT) -package $(FHIRPATH_PKG) -Xexact-output-dir $(FHIRPATH_GRAMMAR)
+# fhirpath: has-antlr
+# 	antlr -Dlanguage=Go -o $(FHIRPATH_OUT) -package $(FHIRPATH_PKG) -Xexact-output-dir $(FHIRPATH_GRAMMAR)
 
 has-antlr:
 	@which antlr > /dev/null || (echo "Please install antlr4 and add it to your PATH" && exit 1)

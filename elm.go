@@ -5,22 +5,13 @@ import (
 	"encoding/xml"
 )
 
-type OutputFormat int
-
-const (
-	JSONFormat OutputFormat = iota
-	XMLFormat
-)
-
 type ELM struct {
-	ast    *AST
-	format OutputFormat
+	ast *AST
 }
 
 func NewELMFromAST(ast *AST) (*ELM, error) {
 	return &ELM{
-		ast:    ast,
-		format: JSONFormat,
+		ast: ast,
 	}, nil
 }
 

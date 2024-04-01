@@ -2,6 +2,8 @@
 *.dylib
 *.test
 *.out
+*.json
+*.xml
 *.txt
 output.*
 grammar

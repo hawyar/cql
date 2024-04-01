@@ -1,5 +1,6 @@
 package cql
 
+// Supported R4 FHIR resources, referenced in CQL expressions
 var FHIRResources = map[string]string{
 	// clinical (general)
 	"AllergyIntolerance":  "AllergyIntolerance",
@@ -43,4 +44,9 @@ var FHIRResources = map[string]string{
 	"Organization":      "Organization",
 	"HealthcareService": "HealthcareService",
 	"Group":             "Group",
+}
+
+func SupportedResource(resource string) bool {
+	_, ok := FHIRResources[resource]
+	return ok
 }

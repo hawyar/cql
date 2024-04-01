@@ -25,8 +25,8 @@ type Repl struct {
 func NewREPL(opt ParseOptions) *Repl {
 	return &Repl{
 		scanner:  bufio.NewScanner(os.Stdin),
-		listener: *NewCQLListener(nil),
-		buff:     bytes.NewBufferString(""),
+		listener: *NewCQLListener(),
+		buff:     &bytes.Buffer{},
 		options:  opt,
 	}
 }

@@ -1,17 +1,3 @@
-## CQL
+CQL (Clinical Quality Language)
 
-### Build
-
-```bash
-make build
-```
-
-Builds cql and puts the executable in the `build` directory
-
-### Usage
-
-Parse a CQL expression
-
-```bash
-cql -input somefile.cql
-```
+CQL is a domain-specific language for used in healthcare settings for clinical quality measures.

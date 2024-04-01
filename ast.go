@@ -1,116 +1,109 @@
 package cql
 
-import (
-	"encoding/json"
-)
+import "encoding/json"
 
 type AccessModifier string
 
 const (
-	PrivateModifier AccessModifier = "Private"
-	PublicModifier  AccessModifier = "Public"
+	PrivateAccessModifier AccessModifier = "Private"
+	PublicAccessModifier  AccessModifier = "Public"
 )
 
-type Program struct {
+type AST struct {
 	Library Library `json:"Library"`
-	File    string  `json:"File"`
-	Loc     Loc     `json:"Range"`
 }
 
-type Statement interface {
-	IsContext() bool
-}
+// type Definition interface {
+// 	QualifiedIdentifier() string
+// 	Identifier() string
+// 	Version() string
+// }
+
+type Statement interface{}
 
 type Library struct {
-	LibDef LibraryDefinition `json:"LibraryDefinition"`
-	Loc    Loc               `json:"Loc"`
+	LibraryDefinition     LibraryDefinition     `json:"LibraryDefinition"`
+	ContextDefinition     Context               `json:",omitempty"`
+	IncludeDefinitions    []IncludeDefinition   `json:",omitempty"`
+	UsingDefinitions      []UsingDefinition     `json:",omitempty"`
+	ValuesetDefinitions   []ValuesetDefinition  `json:",omitempty"`
+	CodesystemDefinitions []Codesystems         `json:",omitempty"`
+	CodeDefinitions       []CodeDefinition      `json:",omitempty"`
+	ParamterDefinitions   []ParameterDefinition `json:",omitempty"`
+	ConceptDefinitions    []ConceptDefinition   `json:",omitempty"`
+	// AllDefinition     []AllDefinition      `json:"AllDefinition"`
+	// AllStatement      []Statement       `json:"AllStatement"`
+	Loc Loc
 }
 
-type AST struct {
-	Library Library `json:"library"`
-	Loc     Loc     `json:"range"`
-}
-
-type Idenitifier interface {
-	Name() string
-	Loc() Loc
-}
-
-type BaseIdentifier struct {
-	name string `json:"name"`
-	loc  Loc    `json:"range"`
-}
-
-func (b *BaseIdentifier) Name() string {
-	return b.name
-}
-
-func (b *BaseIdentifier) Loc() Loc {
-	return b.loc
-}
-
-type QuotedIdentifier struct {
-	name string `json:"name"`
-	loc  Loc    `json:"range"`
-}
-
-func (q *QuotedIdentifier) Name() string {
-	return q.name
-}
-
-func (q *QuotedIdentifier) Loc() Loc {
-	return q.loc
+type QualifiedIdentifier struct {
+	Identifier string `json:"Identifier"`
 }
 
 type LibraryDefinition struct {
-	Identifier Idenitifier `json:"identifier"`
-	Version    string      `json:"version,omitempty"`
-}
-
-type UsingDefinition struct {
-	Name    string `json:"name"`
-	Version string `json:"version,omitempty"`
-}
-
-type ValuesetDefinition struct {
-	Name           string        `json:"name"`
-	Id             string        `json:"id,omitempty"`
-	Version        string        `json:"version,omitempty"`
-	AccessModifier string        `json:"accessModifier,omitempty"`
-	Codesystems    []Codesystems `json:"codesystems,omitempty"`
-}
-
-type Context struct {
-	Identifier string `json:"identifier"`
-}
-
-type Parameter struct {
-	AccessModifier string `json:"accessModifier,omitempty"`
-	Name           string `json:"name"`
+	QualifiedIdentifier QualifiedIdentifier
+	Version             string `json:",omitempty"`
 }
 
 type IncludeDefinition struct {
-	Name    string `json:"name"`
-	Version string `json:"version,omitempty"`
-	Alias   string `json:"alias,omitempty"`
+	Name    string
+	Version string `json:",omitempty"`
+	Alias   string `json:",omitempty"`
+}
+
+type UsingDefinition struct {
+	Identifier string
+	Version    string `json:",omitempty"`
+}
+
+type ValuesetDefinition struct {
+	Name           string
+	Id             string
+	Version        string        `json:",omitempty"`
+	AccessModifier string        `json:",omitempty"`
+	Codesystems    []Codesystems `json:",omitempty"`
 }
 
 type Codesystems struct {
-	Identifier string `json:"identifier"`
+	QualifiedIdentifier []QualifiedIdentifier
 }
 
-// type Library struct {
-// 	Identifier          LibraryDefinition    `json:"idenitifier"`
-// 	UsingDefinitions    []UsingDefinition    `json:"usings,omitempty"`
-// 	IncludeDefinitions  []IncludeDefinition  `json:"includes,omitempty"`
-// 	ValuesetDefinitions []ValuesetDefinition `json:"valueSets,omitempty"`
-// 	Parameters          []Parameter          `json:"parameters,omitempty"`
-// 	Context             Context              `json:"contexts,omitempty"`
-// 	Statements          []Statement          `json:"statements,omitempty"`
-// 	Range               Range                `json:"range"`
-// }
+type ParameterDefinition struct {
+	AccessModifier    AccessModifier `json:",omitempty"`
+	Name              string
+	TypeSpecifier     string     `json:",omitempty"`
+	DefaultExpression Expression `json:",omitempty"`
+}
 
-func (a *Program) JSON() ([]byte, error) {
+type Expression interface{}
+type Context string
+type DisplayClause string
+
+type CodeDefinition struct {
+	AccessModifier      AccessModifier `json:",omitempty"`
+	Identifier          string
+	QualifiedIdentifier QualifiedIdentifier
+	CodeId              string        `json:",omitempty"`
+	DisplayClause       DisplayClause `json:",omitempty"`
+}
+
+type ConceptDefinition struct {
+	AccessModifier      AccessModifier `json:",omitempty"`
+	Identifier          string
+	QualifiedIdentifier []QualifiedIdentifier
+	DisplayClause       DisplayClause `json:",omitempty"`
+}
+
+type Function struct {
+	AccessModifier AccessModifier `json:",omitempty"`
+	Identifier     string
+}
+
+func (a *AST) JSON() ([]byte, error) {
+	if a == nil {
+		return nil, nil
+	}
+
 	jstr, err := json.MarshalIndent(a, "", "  ")
 
 	if err != nil {

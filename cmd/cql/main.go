@@ -36,9 +36,8 @@ func main() {
 	help := flag.Bool("help", false, "Show usage information")
 
 	input := flag.String("input", "", "File path to a CQL file")
-	output := flag.String("output", "", "Output file path, defaults to stdout")
+	// output := flag.String("output", "", "Output file path, defaults to stdout")
 	format := flag.String("format", "json", "Output format, either JSON or XML")
-	repl := flag.Bool("repl", false, "Interactive REPL")
 
 	flag.Parse()
 
@@ -52,11 +51,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	if repl != nil && *repl {
-		cql.NewREPL(cql.DefaultOptions()).Start()
-		return
-	}
-
 	opt := cql.DefaultOptions()
 
 	if strings.ToLower(*format) == "xml" {
@@ -65,7 +59,7 @@ func main() {
 
 	if input == nil || *input == "" {
 		showUsage()
-		return
+		os.Exit(0)
 	}
 
 	fstream, err := FileStream(*input)
@@ -74,36 +68,19 @@ func main() {
 		log.Fatal(err)
 	}
 
-	prog, err := cql.Parse(fstream, opt)
+	_, err = cql.Parse(fstream, opt)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	json, err := prog.JSON()
+	// jsonast, err := ast.JSON()
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	if opt.Output == os.Stdout {
-		fmt.Println(string(json))
-		return
-	}
-
-	outputFile, err := os.OpenFile(*output, os.O_CREATE|os.O_WRONLY, 0644)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer outputFile.Close()
-
-	n, err := outputFile.Write(json)
-
-	if err != nil || n != len(json) {
-		log.Fatal(err)
-	}
+	// fmt.Println(string(jsonast))
 }
 
 func FileStream(path string) (*antlr.FileStream, error) {
