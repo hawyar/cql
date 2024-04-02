@@ -2,6 +2,7 @@ package cql
 
 // Supported R4 FHIR resources, referenced in CQL expressions
 var FHIRResources = map[string]string{
+	"Unfiltered": "Unfiltered",
 	// clinical (general)
 	"AllergyIntolerance":  "AllergyIntolerance",
 	"Condition":           "Condition",

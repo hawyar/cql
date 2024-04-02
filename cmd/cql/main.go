@@ -5,39 +5,16 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/hawyar/cql"
 )
 
-func showUsage() {
-	usage := `Usage: cql [FLAGS] [COMMANDS]
-
-COMMANDS:
-  parse 		parse a CQL file
-  repl 			start a CQL repl
-
-FLAGS:
-  -version	  	show version
-  -help	 		show usage
-  -input 		input file path
-  -output 		output file path, defaults to stdout
-  -format 		output format, either JSON or XML (default: json)
-
-Example:
-  $ cql -input example.cql -format xml parse
-  $ cql repl`
-	fmt.Println(usage)
-}
-
 func main() {
 	version := flag.Bool("version", false, "Show version")
 	help := flag.Bool("help", false, "Show usage information")
-
-	input := flag.String("input", "", "File path to a CQL file")
-	// output := flag.String("output", "", "Output file path, defaults to stdout")
-	format := flag.String("format", "json", "Output format, either JSON or XML")
+	expr := flag.String("e", "", "CQL expression to evaluate")
+	fileinput := flag.String("f", "", "CQL file to parse")
 
 	flag.Parse()
 
@@ -47,40 +24,59 @@ func main() {
 	}
 
 	if help != nil && *help {
-		showUsage()
+		usage()
 		os.Exit(0)
 	}
 
-	opt := cql.DefaultOptions()
+	if expr != nil && *expr != "" {
+		in := antlr.NewInputStream(*expr)
 
-	if strings.ToLower(*format) == "xml" {
-		opt.Format = cql.XMLFormat
+		if in.Size() == 0 {
+			log.Fatal("empty input")
+		}
+
+		ast, perr := cql.Parse(in)
+
+		if perr != nil {
+			log.Fatal(perr)
+		}
+
+		astj, err := ast.JSON()
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println(astj)
+		return
 	}
 
-	if input == nil || *input == "" {
-		showUsage()
-		os.Exit(0)
+	if fileinput != nil && *fileinput != "" {
+		fstream, err := FileStream(*fileinput)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		ast, parseErr := cql.Parse(fstream)
+
+		if len(parseErr) > 0 {
+			for _, e := range parseErr {
+				fmt.Println("Error:", e.Error())
+			}
+		}
+
+		astj, err := ast.JSON()
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println(string(astj))
+		return
 	}
 
-	fstream, err := FileStream(*input)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	_, err = cql.Parse(fstream, opt)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// jsonast, err := ast.JSON()
-
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// fmt.Println(string(jsonast))
+	usage()
 }
 
 func FileStream(path string) (*antlr.FileStream, error) {
@@ -105,4 +101,24 @@ func FileStream(path string) (*antlr.FileStream, error) {
 	}
 
 	return fstream, nil
+}
+
+func usage() {
+	usage := `Usage: cql [FLAGS] [COMMANDS]
+
+COMMANDS:
+  parse 		parse a CQL file
+  repl 			start a CQL repl
+
+FLAGS:
+  -version	  	show version
+  -help	 		show usage
+  -input 		input file path
+  -output 		output file path, defaults to stdout
+  -format 		output format, either JSON or XML (default: json)
+
+Example:
+  $ cql -input example.cql -format xml parse
+  $ cql repl`
+	fmt.Println(usage)
 }

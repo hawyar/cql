@@ -2,15 +2,19 @@ package cql
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
-	parser "github.com/hawyar/cql/internal/parser"
+	parser "github.com/hawyar/cql/internal"
 )
 
 type CQLListener struct {
 	*parser.BasecqlListener
 	ast *AST
+	// antlr already generates a parse tree, but we use this stack
+	// to make sure we enter and exit some terminal nodes correctly.
+	stack stack
 }
 
 type Loc struct {
@@ -20,7 +24,8 @@ type Loc struct {
 
 func NewCQLListener() *CQLListener {
 	return &CQLListener{
-		ast: &AST{},
+		ast:   &AST{},
+		stack: stack{},
 	}
 }
 
@@ -29,28 +34,58 @@ func (c *CQLListener) AST() *AST {
 }
 
 func (c *CQLListener) EnterLibrary(ctx *parser.LibraryContext) {
-	c.ast.Library.Loc = LocFromContext(ctx)
+	// c.ast.Library.Loc = locFromContext(ctx)
+	c.stack.push(ctx)
 }
 
 func (c *CQLListener) ExitLibrary(ctx *parser.LibraryContext) {
-	if c.ast == nil {
-		return
-	}
+	c.stack.pop()
 
-	astj, _ := c.ast.JSON()
-	fmt.Println(string(astj))
+	if !c.stack.isEmpty() {
+		log.Fatal("stack is not empty, make sure terminal nodes are visited correctly")
+	}
 }
 
 func (c *CQLListener) EnterLibraryDefinition(ctx *parser.LibraryDefinitionContext) {
+	c.stack.push(ctx)
+
 	if ctx.IsEmpty() || ctx == nil {
 		return
 	}
 
 	def := LibraryDefinition{}
 
-	if ctx.QualifiedIdentifier() != nil {
+	// no qualifier with single indentifier
+	if ctx.QualifiedIdentifier().AllQualifier() != nil && len(ctx.QualifiedIdentifier().AllQualifier()) == 0 {
 		def.QualifiedIdentifier = QualifiedIdentifier{
 			Identifier: strings.Trim(ctx.QualifiedIdentifier().GetText(), "\""),
+		}
+	}
+
+	// single identifier with possibly more than one qualifier
+	if ctx.QualifiedIdentifier().AllQualifier() != nil {
+		def.QualifiedIdentifier = QualifiedIdentifier{
+			Identifier: ctx.QualifiedIdentifier().Identifier().GetText(),
+		}
+
+		qualifiers := make([]string, 0)
+
+		for _, q := range ctx.QualifiedIdentifier().AllQualifier() {
+			if q.Identifier().IDENTIFIER() != nil {
+				qualifiers = append(qualifiers, q.Identifier().IDENTIFIER().GetText())
+			}
+
+			if q.Identifier().QUOTEDIDENTIFIER() != nil {
+				qualifiers = append(qualifiers, q.Identifier().QUOTEDIDENTIFIER().GetText())
+			}
+
+			if q.Identifier().DELIMITEDIDENTIFIER() != nil {
+				qualifiers = append(qualifiers, q.Identifier().DELIMITEDIDENTIFIER().GetText())
+			}
+		}
+
+		if len(qualifiers) != 0 {
+			def.QualifiedIdentifier.Qualifiers = qualifiers
 		}
 	}
 
@@ -61,13 +96,30 @@ func (c *CQLListener) EnterLibraryDefinition(ctx *parser.LibraryDefinitionContex
 	c.ast.Library.LibraryDefinition = def
 }
 
+func (c *CQLListener) ExitLibraryDefinition(ctx *parser.LibraryDefinitionContext) {
+	c.stack.pop()
+}
+
 func (c *CQLListener) EnterContextDefinition(ctx *parser.ContextDefinitionContext) {
+	c.stack.push(ctx)
+
 	if ctx.Identifier() != nil {
-		c.ast.Library.ContextDefinition = Context(strings.Trim(ctx.Identifier().GetText(), "\""))
+		c.ast.Library.ContextDefinition = ContextDefinition((strings.Trim(ctx.Identifier().GetText(), "\"")))
 	}
 }
 
+func (c *CQLListener) ExitContextDefinition(ctx *parser.ContextDefinitionContext) {
+	// if no context is specified in the library, and the model has not declared a default context
+	// then set default context to Unfiltered.
+	if c.ast.Library.ContextDefinition == "" {
+		c.ast.Library.ContextDefinition = "Unfiltered"
+	}
+	c.stack.pop()
+}
+
 func (c *CQLListener) EnterIncludeDefinition(ctx *parser.IncludeDefinitionContext) {
+	c.stack.push(ctx)
+
 	def := IncludeDefinition{}
 
 	if ctx.QualifiedIdentifier() != nil {
@@ -85,7 +137,13 @@ func (c *CQLListener) EnterIncludeDefinition(ctx *parser.IncludeDefinitionContex
 	c.ast.Library.IncludeDefinitions = append(c.ast.Library.IncludeDefinitions, def)
 }
 
+func (c *CQLListener) ExitIncludeDefinition(ctx *parser.IncludeDefinitionContext) {
+	c.stack.pop()
+}
+
 func (c *CQLListener) EnterUsingDefinition(ctx *parser.UsingDefinitionContext) {
+	c.stack.push(ctx)
+
 	def := UsingDefinition{}
 
 	if ctx.ModelIdentifier() != nil {
@@ -99,7 +157,13 @@ func (c *CQLListener) EnterUsingDefinition(ctx *parser.UsingDefinitionContext) {
 	c.ast.Library.UsingDefinitions = append(c.ast.Library.UsingDefinitions, def)
 }
 
+func (c *CQLListener) ExitUsingDefinition(ctx *parser.UsingDefinitionContext) {
+	c.stack.pop()
+}
+
 func (c *CQLListener) EnterValuesetDefinition(ctx *parser.ValuesetDefinitionContext) {
+	c.stack.push(ctx)
+
 	def := ValuesetDefinition{}
 
 	if ctx.Identifier() != nil {
@@ -115,7 +179,7 @@ func (c *CQLListener) EnterValuesetDefinition(ctx *parser.ValuesetDefinitionCont
 	}
 
 	if ctx.ValuesetId() != nil {
-		def.Id = strings.Trim(ctx.ValuesetId().GetText(), "\"")
+		def.ID = strings.Trim(ctx.ValuesetId().GetText(), "\"")
 	}
 
 	if ctx.Codesystems() != nil {
@@ -123,9 +187,9 @@ func (c *CQLListener) EnterValuesetDefinition(ctx *parser.ValuesetDefinitionCont
 			QualifiedIdentifier: make([]QualifiedIdentifier, 0),
 		}
 
-		for _, qid := range ctx.Codesystems().AllCodesystemIdentifier() {
+		for _, id := range ctx.Codesystems().AllCodesystemIdentifier() {
 			qi := QualifiedIdentifier{
-				Identifier: strings.Trim(qid.GetText(), "\""),
+				Identifier: strings.Trim(id.GetText(), "\""),
 			}
 			codesystem.QualifiedIdentifier = append(codesystem.QualifiedIdentifier, qi)
 		}
@@ -135,7 +199,33 @@ func (c *CQLListener) EnterValuesetDefinition(ctx *parser.ValuesetDefinitionCont
 	c.ast.Library.ValuesetDefinitions = append(c.ast.Library.ValuesetDefinitions, def)
 }
 
+func (c *CQLListener) ExitValuesetDefinition(ctx *parser.ValuesetDefinitionContext) {
+	c.stack.pop()
+}
+
+// codesystems may appear without a valueset definition
+func (c *CQLListener) EnterCodesystems(ctx *parser.CodesystemsContext) {
+	c.stack.push(ctx)
+
+	codesystem := Codesystems{}
+
+	for _, id := range ctx.AllCodesystemIdentifier() {
+		qi := QualifiedIdentifier{
+			Identifier: strings.Trim(id.GetText(), "\""),
+		}
+		codesystem.QualifiedIdentifier = append(codesystem.QualifiedIdentifier, qi)
+	}
+
+	c.ast.Library.CodesystemDefinitions = append(c.ast.Library.CodesystemDefinitions, codesystem)
+}
+
+func (c *CQLListener) ExitCodesystems(ctx *parser.CodesystemsContext) {
+	c.stack.pop()
+}
+
 func (c *CQLListener) EnterParameterDefinition(ctx *parser.ParameterDefinitionContext) {
+	c.stack.push(ctx)
+
 	def := ParameterDefinition{}
 
 	if ctx.AccessModifier() != nil {
@@ -159,7 +249,13 @@ func (c *CQLListener) EnterParameterDefinition(ctx *parser.ParameterDefinitionCo
 	c.ast.Library.ParamterDefinitions = append(c.ast.Library.ParamterDefinitions, def)
 }
 
+func (c *CQLListener) ExitParameterDefinition(ctx *parser.ParameterDefinitionContext) {
+	c.stack.pop()
+}
+
 func (c *CQLListener) EnterCodeDefinition(ctx *parser.CodeDefinitionContext) {
+	c.stack.push(ctx)
+
 	def := CodeDefinition{}
 
 	if ctx.AccessModifier() != nil {
@@ -171,7 +267,7 @@ func (c *CQLListener) EnterCodeDefinition(ctx *parser.CodeDefinitionContext) {
 	}
 
 	if ctx.CodeId() != nil {
-		def.CodeId = strings.Trim(ctx.CodeId().GetText(), "'")
+		def.CodeID = strings.Trim(ctx.CodeId().GetText(), "'")
 	}
 
 	if ctx.CodesystemIdentifier() != nil {
@@ -189,7 +285,13 @@ func (c *CQLListener) EnterCodeDefinition(ctx *parser.CodeDefinitionContext) {
 	c.ast.Library.CodeDefinitions = append(c.ast.Library.CodeDefinitions, def)
 }
 
+func (c *CQLListener) ExitCodeDefinition(ctx *parser.CodeDefinitionContext) {
+	c.stack.pop()
+}
+
 func (c *CQLListener) EnterConceptDefinition(ctx *parser.ConceptDefinitionContext) {
+	c.stack.push(ctx)
+
 	concept := ConceptDefinition{}
 
 	if ctx.AccessModifier() != nil {
@@ -211,6 +313,7 @@ func (c *CQLListener) EnterConceptDefinition(ctx *parser.ConceptDefinitionContex
 			qi := QualifiedIdentifier{
 				Identifier: strings.Trim(ident.GetText(), "\""),
 			}
+
 			concept.QualifiedIdentifier = append(concept.QualifiedIdentifier, qi)
 		}
 	}
@@ -218,20 +321,54 @@ func (c *CQLListener) EnterConceptDefinition(ctx *parser.ConceptDefinitionContex
 	c.ast.Library.ConceptDefinitions = append(c.ast.Library.ConceptDefinitions, concept)
 }
 
-func (c *CQLListener) EnterCastExpression(ctx *parser.CastExpressionContext) {
-	fmt.Println("cast expression: ", ctx.GetText())
+func (c *CQLListener) ExitConceptDefinition(ctx *parser.ConceptDefinitionContext) {
+	c.stack.pop()
 }
 
-func LocFromContext(ctx antlr.ParserRuleContext) Loc {
-	return Loc{
-		Start: ctx.GetStart().GetStart(),
-		End:   ctx.GetStop().GetStop() + 1,
-	}
+func (c *CQLListener) EnterExpressionDefinition(ctx *parser.ExpressionDefinitionContext) {
+	// c.stack.push(ctx)
+	fmt.Println("expression definition: ", ctx.GetText())
 }
 
-func LocFromToken(token antlr.Token) Loc {
-	return Loc{
-		Start: token.GetStart(),
-		End:   token.GetStop() + 1,
+type node struct {
+	ctx antlr.ParserRuleContext
+}
+
+type stack struct {
+	items []node
+	size  int
+}
+
+func (s *stack) push(ctx antlr.ParserRuleContext) {
+	s.items = append(s.items, node{ctx: ctx})
+	s.size++
+}
+
+func (s *stack) pop() node {
+	if s.size == 0 {
+		return node{}
 	}
+
+	n := s.items[s.size-1]
+	s.items = s.items[:s.size-1]
+	s.size--
+
+	return n
+}
+
+func (s *stack) peek() node {
+	if s.size == 0 {
+		return node{}
+	}
+
+	return s.items[s.size-1]
+}
+
+func (s *stack) isEmpty() bool {
+	return s.size == 0
+}
+
+func (s *stack) clear() {
+	s.items = []node{}
+	s.size = 0
 }

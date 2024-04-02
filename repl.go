@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/antlr4-go/antlr/v4"
-	parser "github.com/hawyar/cql/internal/parser"
+	parser "github.com/hawyar/cql/internal"
 )
 
 const (
@@ -16,18 +16,16 @@ const (
 )
 
 type Repl struct {
-	options  ParseOptions
 	scanner  *bufio.Scanner
 	buff     *bytes.Buffer
 	listener CQLListener
 }
 
-func NewREPL(opt ParseOptions) *Repl {
+func NewREPL() *Repl {
 	return &Repl{
 		scanner:  bufio.NewScanner(os.Stdin),
 		listener: *NewCQLListener(),
-		buff:     &bytes.Buffer{},
-		options:  opt,
+		buff:     new(bytes.Buffer),
 	}
 }
 

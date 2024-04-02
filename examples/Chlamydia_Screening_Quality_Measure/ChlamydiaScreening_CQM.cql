@@ -24,34 +24,3 @@ valueset "Chlamydia Screening": '2.16.840.1.113883.3.464.1003.110.12.1052' codes
 parameter MeasurementPeriod default Interval[DateTime(2013, 1, 1, 0, 0, 0, 0), DateTime(2014, 1, 1, 0, 0, 0, 0))
 
 context Patient
-
-define "InDemographic":
-	AgeInYearsAt(start of MeasurementPeriod) >= 16 and AgeInYearsAt(start of MeasurementPeriod) < 24
-		and "Patient"."gender" in "Female Administrative Sex"
-
-define "SexuallyActive":
-	exists (["Condition": "Other Female Reproductive Conditions"] C where Interval[C."onsetDateTime", C."abatementDate"] overlaps MeasurementPeriod)
-		or exists (["Condition": "Genital Herpes"] C where Interval[C."onsetDateTime", C."abatementDate"] overlaps MeasurementPeriod)
-		or exists (["Condition": "Genococcal Infections and Venereal Diseases"] C where Interval[C."onsetDateTime", C."abatementDate"] overlaps MeasurementPeriod)
-		or exists (["Condition": "Inflammatory Diseases of Female Reproductive Organs"] C where Interval[C."onsetDateTime", C."abatementDate"] overlaps MeasurementPeriod)
-		or exists (["Condition": "Chlamydia"] C where Interval[C."onsetDateTime", C."abatementDate"] overlaps MeasurementPeriod)
-		or exists (["Condition": "HIV"] C where Interval[C."onsetDateTime", C."abatementDate"] overlaps MeasurementPeriod)
-		or exists (["Condition": "Syphilis"] C where Interval[C."onsetDateTime", C."abatementDate"] overlaps MeasurementPeriod)
-		or exists (["Condition": "Complications of Pregnancy, Childbirth and the Puerperium"] C where Interval[C."onsetDateTime", C."abatementDate"] overlaps MeasurementPeriod)
-		or exists (["DiagnosticOrder": "Pregnancy Test"] O where Last(O."event" E where E."status" = 'completed' sort by E."dateTime")."dateTime" during MeasurementPeriod)
-		or exists (["DiagnosticOrder": "Pap Test"] O where Last(O."event" E where E."status" = 'completed' sort by E."dateTime")."dateTime" during MeasurementPeriod)
-		or exists (["DiagnosticOrder": "Lab Tests During Pregnancy"] O where Last(O."event" E where E."status" = 'completed')."dateTime" during MeasurementPeriod)
-		or exists (["DiagnosticOrder": "Lab Tests for Sexually Transmitted Infections"] O where Last(O."event" E where E."status" = 'completed')."dateTime" during MeasurementPeriod)
-
-define "InInitialPopulation":
-	"InDemographic" and "SexuallyActive"
-
-define "InDenominator":
-	true
-
-define "InNumerator":
-	exists (["DiagnosticReport": "Chlamydia Screening"] R where R."issued" during MeasurementPeriod and R."result" is not null)
-
-context Population
-
-define "MeasureScore": (Count(Patient P where "InInitialPopulation" and "InDenominator" and "InNumerator") / Count("Patient" P where "InInitialPopulation" and "InDenominator")) * 100

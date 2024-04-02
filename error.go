@@ -6,24 +6,27 @@ import (
 	"github.com/antlr4-go/antlr/v4"
 )
 
+type CustomErr struct {
+	Line, Column int
+	Msg          string
+}
+
+func (c *CustomErr) Error() string {
+	return fmt.Sprintf("%s %d:%d", c.Msg, c.Line, c.Column)
+}
+
 type ErrorListener struct {
 	*antlr.DefaultErrorListener
-}
-
-func NewErrorListener() *antlr.DefaultErrorListener {
-	return antlr.NewDefaultErrorListener()
-}
-
-func NewConsoleErrorListener() *antlr.ConsoleErrorListener {
-	return antlr.NewConsoleErrorListener()
+	Errs []CustomErr
 }
 
 func (e *ErrorListener) SyntaxError(r antlr.Recognizer, d interface{}, line, column int, msg string, ex antlr.RecognitionException) {
-	fmt.Println("Syntax error:", msg)
+	e.Errs = append(e.Errs, CustomErr{line, column, msg})
 }
 
 func (e *ErrorListener) ReportAmbiguity(r antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex int, exact bool, ambigAlts *antlr.BitSet, configs *antlr.ATNConfigSet) {
-	fmt.Println("ReportAmbiguity")
+	line := r.GetTokenStream().LT(1).GetLine()
+	fmt.Println("ReportAmbiguity: line: ", line)
 }
 
 func (e *ErrorListener) ReportAttemptingFullContext(r antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex int, conflictingAlts *antlr.BitSet, configs *antlr.ATNConfigSet) {
@@ -32,4 +35,5 @@ func (e *ErrorListener) ReportAttemptingFullContext(r antlr.Parser, dfa *antlr.D
 
 func (e *ErrorListener) ReportContextSensitivity(r antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex, prediction int, configs *antlr.ATNConfigSet) {
 	fmt.Println("ReportContextSensitivity")
+
 }

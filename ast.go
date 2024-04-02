@@ -23,7 +23,7 @@ type Statement interface{}
 
 type Library struct {
 	LibraryDefinition     LibraryDefinition     `json:"LibraryDefinition"`
-	ContextDefinition     Context               `json:",omitempty"`
+	ContextDefinition     ContextDefinition     `json:",omitempty"`
 	IncludeDefinitions    []IncludeDefinition   `json:",omitempty"`
 	UsingDefinitions      []UsingDefinition     `json:",omitempty"`
 	ValuesetDefinitions   []ValuesetDefinition  `json:",omitempty"`
@@ -33,11 +33,12 @@ type Library struct {
 	ConceptDefinitions    []ConceptDefinition   `json:",omitempty"`
 	// AllDefinition     []AllDefinition      `json:"AllDefinition"`
 	// AllStatement      []Statement       `json:"AllStatement"`
-	Loc Loc
+	// Loc Loc
 }
 
 type QualifiedIdentifier struct {
-	Identifier string `json:"Identifier"`
+	Qualifiers []string `json:",omitempty"`
+	Identifier string
 }
 
 type LibraryDefinition struct {
@@ -58,7 +59,7 @@ type UsingDefinition struct {
 
 type ValuesetDefinition struct {
 	Name           string
-	Id             string
+	ID             string
 	Version        string        `json:",omitempty"`
 	AccessModifier string        `json:",omitempty"`
 	Codesystems    []Codesystems `json:",omitempty"`
@@ -76,14 +77,14 @@ type ParameterDefinition struct {
 }
 
 type Expression interface{}
-type Context string
+type ContextDefinition string
 type DisplayClause string
 
 type CodeDefinition struct {
 	AccessModifier      AccessModifier `json:",omitempty"`
 	Identifier          string
 	QualifiedIdentifier QualifiedIdentifier
-	CodeId              string        `json:",omitempty"`
+	CodeID              string        `json:",omitempty"`
 	DisplayClause       DisplayClause `json:",omitempty"`
 }
 
