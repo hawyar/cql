@@ -1,6 +1,6 @@
 library "Hypertension Blood Pressure Control"
 
-using QUICK
+using QUICK version '0.3.0'
 
 codesystem "LOINC": 'http://loinc.org'
 
@@ -10,7 +10,6 @@ valueset "Hypertension Diagnosis": '38341003'
 
 parameter "Measurement Period" Interval<DateTime>
 
-context Patient
 
 define "Hypertensive Patients":
   exists ("Hypertension Diagnosis" HypertensionDx
@@ -33,3 +32,6 @@ define "Denominator":
 
 define "Hypertension Blood Pressure Control Rate":
   Count("Numerator") / Count("Denominator")
+
+
+context Patient

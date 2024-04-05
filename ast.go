@@ -1,6 +1,8 @@
 package cql
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 type AccessModifier string
 
@@ -11,15 +13,8 @@ const (
 
 type AST struct {
 	Library Library `json:"Library"`
+	Loc     Loc     `json:"Loc"`
 }
-
-// type Definition interface {
-// 	QualifiedIdentifier() string
-// 	Identifier() string
-// 	Version() string
-// }
-
-type Statement interface{}
 
 type Library struct {
 	LibraryDefinition     LibraryDefinition     `json:"LibraryDefinition"`
@@ -36,33 +31,70 @@ type Library struct {
 	// Loc Loc
 }
 
+// type Definition interface {
+// 	QualifiedIdentifier() string
+// 	Identifier() string
+// 	Version() string
+// }
+
+type Statement interface{}
+
+type Identifier interface {
+	Identifier() string
+}
+
+type PlainIdentifier struct {
+	Name string
+	Loc
+}
+
+func (s PlainIdentifier) Identifier() string { return s.Name }
+
+type QoutedIdentifier struct {
+	Name string
+	Loc
+}
+
+func (q QoutedIdentifier) Identifier() string { return q.Name }
+
+type DelimtedIdentifier struct {
+	Name string
+	Loc
+}
+
+func (d DelimtedIdentifier) Identifier() string { return d.Name }
+
 type QualifiedIdentifier struct {
-	Qualifiers []string `json:",omitempty"`
-	Identifier string
+	Qualifiers []Identifier
+	Identifier Identifier
+	Resolved   string
+	Loc        Loc
 }
 
 type LibraryDefinition struct {
 	QualifiedIdentifier QualifiedIdentifier
 	Version             string `json:",omitempty"`
+	Loc
 }
 
 type IncludeDefinition struct {
-	Name    string
-	Version string `json:",omitempty"`
-	Alias   string `json:",omitempty"`
+	QualifiedIdentifier QualifiedIdentifier
+	Version             string `json:",omitempty"`
+	// back identifier
+	Alias Identifier `json:",omitempty"`
 }
 
 type UsingDefinition struct {
-	Identifier string
+	Identifier Identifier
 	Version    string `json:",omitempty"`
+	Loc
 }
 
 type ValuesetDefinition struct {
-	Name           string
-	ID             string
-	Version        string        `json:",omitempty"`
-	AccessModifier string        `json:",omitempty"`
-	Codesystems    []Codesystems `json:",omitempty"`
+	Identifier     Identifier
+	Version        string      `json:",omitempty"`
+	AccessModifier string      `json:",omitempty"`
+	Codesystems    Codesystems `json:",omitempty"`
 }
 
 type Codesystems struct {
@@ -77,7 +109,10 @@ type ParameterDefinition struct {
 }
 
 type Expression interface{}
-type ContextDefinition string
+type ContextDefinition struct {
+	QualifiedIdentifier
+}
+
 type DisplayClause string
 
 type CodeDefinition struct {
@@ -99,6 +134,34 @@ type Function struct {
 	AccessModifier AccessModifier `json:",omitempty"`
 	Identifier     string
 }
+
+type TypeSpecifier interface {
+	QualifiedIdentifier() QualifiedIdentifier
+	TypeSpecifier() TypeSpecifier
+	Identifier() string
+	// TupleElementDefinition()
+}
+
+type NamedTypeSpecifier struct {
+	QualifiedIdentifier QualifiedIdentifier
+}
+
+// type ListTypeSpecifier struct {
+// 	TypeSpecifier []ITypeSpecifier
+// }
+
+// type IntervalTypeSpecifier struct {
+// 	TypeSpecifier []ITypeSpecifier
+// }
+
+// type TupleTypeSpecifier struct{}
+// type ChoiceTypeSpecifier struct{}
+
+// // not part of the typeSpecifier interface
+// type TupleElementDefinition struct {
+// 	Identifier     string
+// 	TypeSpecifier   ITypeSpecifier
+// }
 
 func (a *AST) JSON() ([]byte, error) {
 	if a == nil {

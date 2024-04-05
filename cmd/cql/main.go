@@ -41,13 +41,13 @@ func main() {
 			log.Fatal(perr)
 		}
 
-		astj, err := ast.JSON()
+		_, err := ast.JSON()
 
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		fmt.Println(astj)
+		// fmt.Println(astj)
 		return
 	}
 
