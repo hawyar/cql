@@ -35,19 +35,12 @@ func main() {
 			log.Fatal("empty input")
 		}
 
-		ast, perr := cql.Parse(in)
+		_, perr := cql.Parse(in)
 
 		if perr != nil {
 			log.Fatal(perr)
 		}
 
-		_, err := ast.JSON()
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// fmt.Println(astj)
 		return
 	}
 
@@ -72,7 +65,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		fmt.Println(string(astj))
+		os.Stdout.Write(astj)
 		return
 	}
 

@@ -5,9 +5,9 @@ import (
 	parser "github.com/hawyar/cql/internal"
 )
 
-func Parse(chars antlr.CharStream) (*AST, []CustomErr) {
+func Parse(chars antlr.CharStream) (*AST, []Err) {
 	if chars.Size() == 0 {
-		return nil, []CustomErr{{0, 0, "empty input"}}
+		return nil, []Err{{0, 0, "empty input"}}
 	}
 
 	lexer := parser.NewcqlLexer(chars)
@@ -31,15 +31,15 @@ func Parse(chars antlr.CharStream) (*AST, []CustomErr) {
 	entry := parser.GetTokenStream().LT(1)
 
 	if entry.GetTokenType() != 1 {
-		return nil, []CustomErr{{entry.GetLine(), entry.GetColumn(), "unexpected token: " + entry.GetText() + "expected LibraryDefinition, Definition, or Statement"}}
+		return nil, []Err{{entry.GetLine(), entry.GetColumn(), "unexpected token: " + entry.GetText() + "expected LibraryDefinition, Definition, or Statement"}}
 	}
 
 	listener := NewCQLListener()
 
 	antlr.ParseTreeWalkerDefault.Walk(listener, parser.Library())
 
-	if len(parseErr.Errs) > 0 {
-		return nil, parseErr.Errs
+	if len(parseErr.SyntaxErrors()) > 0 {
+		return nil, parseErr.SyntaxErrors()
 	}
 
 	return listener.AST(), nil

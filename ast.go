@@ -13,22 +13,22 @@ const (
 
 type AST struct {
 	Library Library `json:"Library"`
-	Loc     Loc     `json:"Loc"`
 }
 
+type Definition interface{}
+
 type Library struct {
-	LibraryDefinition     LibraryDefinition     `json:"LibraryDefinition"`
-	ContextDefinition     ContextDefinition     `json:",omitempty"`
-	IncludeDefinitions    []IncludeDefinition   `json:",omitempty"`
-	UsingDefinitions      []UsingDefinition     `json:",omitempty"`
-	ValuesetDefinitions   []ValuesetDefinition  `json:",omitempty"`
-	CodesystemDefinitions []Codesystems         `json:",omitempty"`
-	CodeDefinitions       []CodeDefinition      `json:",omitempty"`
-	ParamterDefinitions   []ParameterDefinition `json:",omitempty"`
-	ConceptDefinitions    []ConceptDefinition   `json:",omitempty"`
+	LibraryDefinition     LibraryDefinition
+	ContextDefinition     ContextDefinition      `json:",omitempty"`
+	IncludeDefinitions    []IncludeDefinition    `json:",omitempty"`
+	UsingDefinitions      []UsingDefinition      `json:",omitempty"`
+	ValuesetDefinitions   []ValuesetDefinition   `json:",omitempty"`
+	CodesystemDefinitions []CodesystemDefinition `json:",omitempty"`
+	CodeDefinitions       []CodeDefinition       `json:",omitempty"`
+	ParamterDefinitions   []ParameterDefinition  `json:",omitempty"`
+	ConceptDefinitions    []ConceptDefinition    `json:",omitempty"`
 	// AllDefinition     []AllDefinition      `json:"AllDefinition"`
 	// AllStatement      []Statement       `json:"AllStatement"`
-	// Loc Loc
 }
 
 // type Definition interface {
@@ -45,36 +45,31 @@ type Identifier interface {
 
 type PlainIdentifier struct {
 	Name string
-	Loc
 }
 
 func (s PlainIdentifier) Identifier() string { return s.Name }
 
 type QoutedIdentifier struct {
 	Name string
-	Loc
 }
 
 func (q QoutedIdentifier) Identifier() string { return q.Name }
 
 type DelimtedIdentifier struct {
 	Name string
-	Loc
 }
 
 func (d DelimtedIdentifier) Identifier() string { return d.Name }
 
 type QualifiedIdentifier struct {
-	Qualifiers []Identifier
+	Qualifiers []Identifier `json:",omitempty"`
 	Identifier Identifier
 	Resolved   string
-	Loc        Loc
 }
 
 type LibraryDefinition struct {
 	QualifiedIdentifier QualifiedIdentifier
 	Version             string `json:",omitempty"`
-	Loc
 }
 
 type IncludeDefinition struct {
@@ -87,14 +82,21 @@ type IncludeDefinition struct {
 type UsingDefinition struct {
 	Identifier Identifier
 	Version    string `json:",omitempty"`
-	Loc
 }
 
 type ValuesetDefinition struct {
 	Identifier     Identifier
-	Version        string      `json:",omitempty"`
-	AccessModifier string      `json:",omitempty"`
-	Codesystems    Codesystems `json:",omitempty"`
+	ValuesetID     string         `json:",omitempty"`
+	Version        string         `json:",omitempty"`
+	AccessModifier AccessModifier `json:",omitempty"`
+	Codesystems    Codesystems    `json:",omitempty"`
+}
+
+type CodesystemDefinition struct {
+	AccessModifier AccessModifier `json:",omitempty"`
+	Identifier     Identifier
+	CodesystemID   string `json:",omitempty"`
+	Version        string `json:",omitempty"`
 }
 
 type Codesystems struct {
@@ -109,6 +111,7 @@ type ParameterDefinition struct {
 }
 
 type Expression interface{}
+
 type ContextDefinition struct {
 	QualifiedIdentifier
 }
@@ -117,7 +120,7 @@ type DisplayClause string
 
 type CodeDefinition struct {
 	AccessModifier      AccessModifier `json:",omitempty"`
-	Identifier          string
+	Identifier          Identifier
 	QualifiedIdentifier QualifiedIdentifier
 	CodeID              string        `json:",omitempty"`
 	DisplayClause       DisplayClause `json:",omitempty"`
